@@ -33,7 +33,9 @@
   },
   "homepage": "https://github.com/yeatmanlab/roar-utils#readme",
   "dependencies": {
-    "@jspsych/plugin-preload": "^1.1.2"
+    "@jspsych/plugin-preload": "^1.1.2",
+    "path": "^0.12.7",
+    "path-browserify": "^1.0.1"
   },
   "devDependencies": {
     "eslint": "^8.28.0",

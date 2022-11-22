@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'path-browserify';
 
 // converts a string to camel case
 export function camelize(string) {
