@@ -4,18 +4,18 @@ import path from 'path';
 export function camelize(string) {
   return string.replace(
     /_([a-z])/g,
-    (groups) => groups[1].toUpperCase()
+    (groups) => groups[1].toUpperCase(),
   );
 }
 
 // get an object where the key is camelize(filename) and the value is the filename
 export function camelizeFiles(files) {
-  let obj = {};
-  
+  const obj = {};
+
   for (const filePath of files) {
     const fileName = path.parse(filePath).name;
     obj[camelize(fileName)] = filePath;
   }
-  
+
   return obj;
-};
+}
