@@ -1,0 +1,33 @@
+{
+  "name": "roar-utils",
+  "version": "1.0.0",
+  "description": "A module containing utilities for ROAR such as helper functions and constants.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yeatmanlab/roar-utils.git"
+  },
+  "keywords": [
+    "roar",
+    "roar-utils",
+    "rapid",
+    "online",
+    "assessment",
+    "of",
+    "reading",
+    "roar-swr",
+    "roar-anb",
+    "roar-mep",
+    "roar-mp",
+    "roar-pa"
+  ],
+  "author": "Shoaib Mohammed",
+  "license": "STANFORD ACADEMIC SOFTWARE LICENSE FOR ROAR™",
+  "bugs": {
+    "url": "https://github.com/yeatmanlab/roar-utils/issues"
+  },
+  "homepage": "https://github.com/yeatmanlab/roar-utils#readme"
+}
