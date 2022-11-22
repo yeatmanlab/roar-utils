@@ -1,8 +1,8 @@
 {
   "name": "roar-utils",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A module containing utilities for ROAR such as helper functions and constants.",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
