@@ -2,10 +2,10 @@ import path from 'path-browserify';
 
 // converts a string to camel case
 export function camelize(string) {
-  return string.replace(
-    /_([a-z])/g,
-    (groups) => groups[1].toUpperCase(),
-  );
+  return string.replace(/^([A-Z])|[\s-_](\w)/g, function(match, p1, p2, offset) {
+    if (p2) return p2.toUpperCase();
+    return p1.toLowerCase();        
+  });
 }
 
 // get an object where the key is camelize(filename) and the value is the filename
