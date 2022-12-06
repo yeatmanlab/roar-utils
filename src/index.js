@@ -18,7 +18,7 @@ export const WRONG_KEY_TEXT = 'right arrow key';
 const audioFiles = [
   feedbackCorrect,
   feedbackIncorrect,
-  feedbackNeutral
+  feedbackNeutral,
 ];
 export const audioContent = camelizeFiles(audioFiles);
 export const preloadAudio = {
