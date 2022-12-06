@@ -11,6 +11,9 @@
         "sourceType": "module"
     },
     "rules": {
-        "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"]
+        // enable enhanced for loops
+        "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
+        // ignore variables that begin with underscore
+        "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
     }
 }
