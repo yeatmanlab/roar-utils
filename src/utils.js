@@ -19,3 +19,17 @@ export function camelizeFiles(files) {
 
   return obj;
 }
+
+/*
+Plays the correct audio based on user response. Takes in 3 arguments:
+- responseIsCorrect (boolean): if the user's response was correct or not, ex. true
+- correct audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackCorrect.mp3"
+- incorrect audio (string): path to the audio file 
+*/
+export function playFeedbackAudio(responseIsCorrect, correctAudio, inCorrrectAudio) {
+  if (responseIsCorrect) {
+    new Audio(correctAudio).play()
+  } else {
+    new Audio(inCorrrectAudio).play()
+  }
+}
