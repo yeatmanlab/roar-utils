@@ -1,5 +1,6 @@
 import path from 'path-browserify';
 
+
 // converts a string to camel case
 export function camelize(string) {
   return string.replace(/^([A-Z])|[\s-_](\w)/g, (_0, p1, p2, _1) => {
@@ -21,15 +22,28 @@ export function camelizeFiles(files) {
 }
 
 /*
-Plays the correct audio based on user response. Takes in 3 arguments:
-- responseIsCorrect (boolean): if the user's response was correct or not, ex. true
-- correct audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackCorrect.mp3"
+Plays the correct audio based on user response. If user response does not matter, it will play a neutral feedback audio. Takes in 3 parameters:
+- responseIsCorrect (boolean || null): if the user's response was correct/incorrect OR null if it does matter, ex. true OR null
+- correct/neutral audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackAudio.mp3"
 - incorrect audio (string): path to the audio file 
 */
-export function playFeedbackAudio(responseIsCorrect, correctAudio, inCorrrectAudio) {
-  if (responseIsCorrect) {
-    new Audio(correctAudio).play()
-  } else {
-    new Audio(inCorrrectAudio).play()
-  }
+
+/*
+Examples of the function can be called
+
+playFeedbackAudio(true, 'correct.mp3', 'incorrect.mp3')
+playFeedbackAudio(null, 'neutral.mp3',)
+*/
+
+
+export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
+    let audioToPlay
+
+    if (responseIsCorrect || responseIsCorrect === null) {
+      audioToPlay = audio1
+    } else {
+      audioToPlay = audio2
+    }
+
+    new Audio(audioToPlay).play()
 }
