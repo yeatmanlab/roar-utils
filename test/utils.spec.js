@@ -1,6 +1,6 @@
 import os from 'node:os';
 import path from 'path-browserify';
-import { camelize, camelizeFiles } from '../src/utils';
+import { camelize, camelizeFiles, playFeedbackAudio } from '../src/utils';
 
 test('test the camelize function', () => {
   const values = [

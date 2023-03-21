@@ -3,6 +3,7 @@
   "version": "1.0.3",
   "description": "A module containing utilities for ROAR such as helper functions and constants.",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "format": "eslint . --ext .js,.ts --fix",
