@@ -57,7 +57,8 @@ try {
   const rawData = fs.readFileSync('./assetStructure.json');
   assetStructure = JSON.parse(rawData);
 
-  generateAssetObject(assetStructure, 'google.com', 'en', 'keyboard')
+  // generateAssetObject(assetStructure, 'google.com', 'en', 'keyboard')
+  createPreloadTrials(assetStructure, 'google.com', 'en', 'keyboard')
 } catch (error) {
   console.error('Error reading JSON file:', error);
 }
@@ -97,7 +98,7 @@ export function generateAssetObject(json, bucketUri, lng, device) {
   };
 
   if (json.preload) {
-    json.preload.forEach((preloadObject) => {
+    Object.values(json.preload).forEach((preloadObject) => {
       assetTypes.forEach((type) => {
         handleAssets(preloadObject, type);
       });
@@ -110,3 +111,67 @@ export function generateAssetObject(json, bucketUri, lng, device) {
 
   return assets;
 }
+
+
+function createPreloadTrials(jsonData, bucketUri, lng, device) {
+  let preloadTrials = {};
+
+  // Determine top-level key: 'preload' or 'all'
+  let topLevelKey = jsonData.hasOwnProperty('preload') ? 'preload' : 'all';
+
+  // Iterate over groups ('preload') or asset types ('all')
+  for (let groupOrType in jsonData[topLevelKey]) {
+      let groupAssets = jsonData[topLevelKey][groupOrType];
+
+      // When top-level key is 'preload'
+      if (topLevelKey === 'preload') {
+          preloadTrials[groupOrType] = generateTrial(groupAssets, bucketUri, lng, device);
+      }
+      // When top-level key is 'all'
+      else {
+          preloadTrials[topLevelKey] = generateTrial(groupAssets, bucketUri, lng, device);
+      }
+  }
+  console.log('preload trials: ', preloadTrials)
+  return preloadTrials;
+}
+
+function generateTrial(groupAssets, bucketUri, lng, device) {
+  let trial = {
+      type: 'preload', // use actual jsPsych preload plugin type here
+      images: [],
+      audio: [],
+      video: [],
+      message: 'The experiment is loading',
+      show_progress_bar: true,
+      continue_after_error: false,
+      error_message: '',
+      show_detailed_errors: true,
+      max_load_time: null,
+      on_error: null,
+      on_success: null
+  };
+
+  // Mapping between asset type and trial key
+  const assetTypeMapping = {
+      images: 'images',
+      audio: 'audio',
+      video: 'video'
+  };
+
+  for (let assetType in groupAssets) {
+      let specificAssets = groupAssets[assetType]['languageSpecific'];
+      let sharedAssets = groupAssets[assetType]['shared'];
+
+      specificAssets.forEach(asset => {
+          trial[assetTypeMapping[assetType]].push(`${bucketUri}/${lng}/${device}/${asset}`);
+      });
+
+      sharedAssets.forEach(asset => {
+          trial[assetTypeMapping[assetType]].push(`${bucketUri}/shared/${device}/${asset}`);
+      });
+  }
+
+  return trial;
+}
+
