@@ -1,4 +1,7 @@
 import path from 'path-browserify';
+// for local testing
+import fs from 'fs'
+
 
 
 // converts a string to camel case
@@ -46,4 +49,64 @@ export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
     }
 
     new Audio(audioToPlay).play()
+}
+// For testing function locally
+let assetStructure
+
+try {
+  const rawData = fs.readFileSync('./assetStructure.json');
+  assetStructure = JSON.parse(rawData);
+
+  generateAssetObject(assetStructure, 'google.com', 'en', 'keyboard')
+} catch (error) {
+  console.error('Error reading JSON file:', error);
+}
+//
+
+export function generateAssetObject(json, bucketUri, lng, device) {
+  const assetTypes = ["images", "audio", "video"];
+  let assets = {};
+
+  const handleAssets = (obj, type) => {
+    obj[type].languageSpecific.forEach((filePath) => {
+      const parsedFileName = path.parse(filePath).name;
+      const camelizedFileName = camelize(parsedFileName)
+
+      const formattedValue = `${bucketUri}/${lng}/${device}/${filePath}`;
+      
+      if (!assets[type]) {
+        assets[type] = {};
+      }
+
+      assets[type][camelizedFileName] = formattedValue;
+    });
+
+    obj[type].shared.forEach((filePath) => {
+      const parsedFileName = path.parse(filePath).name;
+      const camelizedFileName = camelize(parsedFileName)
+
+      const formattedValue = `${bucketUri}/shared/${device}/${filePath}`;
+      
+      if (!assets[type]) {
+        assets[type] = {};
+      }
+
+      assets[type][camelizedFileName] = formattedValue;
+    });
+
+  };
+
+  if (json.preload) {
+    json.preload.forEach((preloadObject) => {
+      assetTypes.forEach((type) => {
+        handleAssets(preloadObject, type);
+      });
+    });
+  } else if (json.all) {
+    assetTypes.forEach((type) => {
+      handleAssets(json.all, type);
+    });
+  }
+
+  return assets;
 }
