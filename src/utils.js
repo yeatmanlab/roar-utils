@@ -100,7 +100,15 @@ export function generateAssetObject(json, bucketURI) {
       const assetType = getAssetType(filePath);
       const parsedFileName = path.parse(filePath).name;
       const camelizedFileName = camelize(parsedFileName);
-      const formattedValue = `${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${filePath}`;
+
+      let formattedValue
+
+      if (type === 'languageSpecific') {
+        formattedValue = `${bucketURI}/${lng}/${device}/${filePath}`;
+      } else {
+        formattedValue = `${bucketURI}/shared/${filePath}`;
+      }
+
       assets[assetType][camelizedFileName] = formattedValue;
     });
   };
@@ -183,14 +191,23 @@ function generatePreloadTrial(groupAssets, bucketURI, lng, device) {
       if (groupAssets[type]) {
           groupAssets[type].forEach(asset => {
               let mimeType = mime.lookup(asset);
+
+              let formattedURL
+
+              if (type === 'languageSpecific') {
+                formattedURL = `${bucketURI}/${lng}/${device}/${asset}`;
+              } else {
+                formattedURL = `${bucketURI}/shared/${asset}`;
+              }
+
               if (mimeType.startsWith('image/')) {
-                  trial.images.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.images.push(formattedURL);
               }
               else if (mimeType.startsWith('audio/')) {
-                  trial.audio.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.audio.push(formattedURL);
               }
               else if (mimeType.startsWith('video/')) {
-                  trial.video.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.video.push(formattedURL);
               }
               else {
                   throw new Error('Invalid MIME type. Only image, audio, and video file types are allowed.');
