@@ -24,6 +24,33 @@ export function camelizeFiles(files) {
   return obj;
 }
 
+/*
+Plays the correct audio based on user response. If user response does not matter, it will play a neutral feedback audio. Takes in 3 parameters:
+- responseIsCorrect (boolean || null): if the user's response was correct/incorrect OR null if it does matter, ex. true OR null
+- correct/neutral audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackAudio.mp3"
+- incorrect audio (string): path to the audio file 
+*/
+
+/*
+Examples of the function can be called
+
+playFeedbackAudio(true, 'correct.mp3', 'incorrect.mp3')
+playFeedbackAudio(null, 'neutral.mp3',)
+*/
+
+export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
+  let audioToPlay
+
+  if (responseIsCorrect || responseIsCorrect === null) {
+    audioToPlay = audio1
+  } else {
+    audioToPlay = audio2
+  }
+
+  new Audio(audioToPlay).play()
+}
+
+// Gets the app language based on the lng query string. Using this because ROAR apps use i18next.
 function getLanguage() {
   let results = new RegExp('[\?&]lng=([^&#]*)').exec(window.location.href);
   if (results == null) {
@@ -33,6 +60,7 @@ function getLanguage() {
   return decodeURI(results[1]) || 0;
 }
 
+// Gets the device type based on the device inputs
 function getDevice() {
   if (deviceType === 'touchOnly' || (deviceType === 'hybrid' && primaryInput === 'touch')) {
     return 'mobile'
@@ -40,8 +68,18 @@ function getDevice() {
   return 'keyboard'
 }
 
+// Takes in a JSON file and a cloud storage bucket URI and returns an object with the the asset paths mapped to thier file names, categorized by media type.
+// Ex.
+// {
+//   images: {
+//     image1: 'path/to/image1.jpg'
+//   }
+//   audio: {
+//     audio1: 'path/to/audio1.mp3'
+//   }
+// }
 
-export function generateAssetObject(json, bucketUri) {
+export function generateAssetObject(json, bucketURI) {
   let assets = { images: {}, video: {}, audio: {} };
   const lng = getLanguage();
   const device = getDevice();
@@ -62,7 +100,7 @@ export function generateAssetObject(json, bucketUri) {
       const assetType = getAssetType(filePath);
       const parsedFileName = path.parse(filePath).name;
       const camelizedFileName = camelize(parsedFileName);
-      const formattedValue = `${bucketUri}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${filePath}`;
+      const formattedValue = `${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${filePath}`;
       assets[assetType][camelizedFileName] = formattedValue;
     });
   };
@@ -85,7 +123,26 @@ export function generateAssetObject(json, bucketUri) {
 }
 
 
-export function createPreloadTrials(jsonData, bucketUri) {
+// Takes in a JSON file and a cloud storage bucket URI and returns an object with groups of preload trials
+// Ex.
+// const preloadTrials = {
+//   preloadStageId1: {
+//     type: jsPsychPreload,
+//     images: [`${bucketUri}/${lng}/${device}/path/to/image_asset1.png`],
+//     audios: [`${bucketUri}/${lng}/${device}/path/to/audio_asset1.png`],
+//     videos: [`${bucketUri}/${lng}/${device}/path/to/video_asset1.png`],
+//     ...otherPreloadOptions
+//   },
+//   preloadStageId2: {
+//     type: jsPsychPreload,
+//     images: [`${bucketUri}/${lng}/${device}/path/to/image_asset2.png`],
+//     audios: [`${bucketUri}/${lng}/${device}/path/to/audio_asset2.png`],
+//     videos: [`${bucketUri}/${lng}/${device}/path/to/video_asset2.png`],
+//     ...otherPreloadOptions
+//   },
+// }
+
+export function createPreloadTrials(jsonData, bucketURI) {
   let preloadTrials = {};
   const lng = getLanguage()
   const device = getDevice()
@@ -96,9 +153,9 @@ export function createPreloadTrials(jsonData, bucketUri) {
   for (let key in jsonData[topLevelKey]) {
       if (topLevelKey === 'preload') {
           let groupAssets = jsonData[topLevelKey][key];
-          preloadTrials[key] = generatePreloadTrial(groupAssets, bucketUri, lng, device);
+          preloadTrials[key] = generatePreloadTrial(groupAssets, bucketURI, lng, device);
       } else {
-          preloadTrials[topLevelKey] = generatePreloadTrial(jsonData[topLevelKey], bucketUri, lng, device);
+          preloadTrials[topLevelKey] = generatePreloadTrial(jsonData[topLevelKey], bucketURI, lng, device);
           break;
       }
   }
@@ -106,7 +163,7 @@ export function createPreloadTrials(jsonData, bucketUri) {
   return preloadTrials;
 }
 
-function generatePreloadTrial(groupAssets, bucketUri, lng, device) {
+function generatePreloadTrial(groupAssets, bucketURI, lng, device) {
   let trial = {
       type: jsPsychPreload,
       images: [],
@@ -127,13 +184,13 @@ function generatePreloadTrial(groupAssets, bucketUri, lng, device) {
           groupAssets[type].forEach(asset => {
               let mimeType = mime.lookup(asset);
               if (mimeType.startsWith('image/')) {
-                  trial.images.push(`${bucketUri}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.images.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
               }
               else if (mimeType.startsWith('audio/')) {
-                  trial.audio.push(`${bucketUri}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.audio.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
               }
               else if (mimeType.startsWith('video/')) {
-                  trial.video.push(`${bucketUri}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
+                  trial.video.push(`${bucketURI}/${type === 'languageSpecific' ? lng : 'shared'}/${device}/${asset}`);
               }
               else {
                   throw new Error('Invalid MIME type. Only image, audio, and video file types are allowed.');
