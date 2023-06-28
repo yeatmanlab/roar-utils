@@ -51,7 +51,9 @@ export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
 }
 
 // Gets the app language based on the lng query string. Using this because ROAR apps use i18next.
-function getLanguage() {
+function getLanguage(setLanguage) {
+  if (setLanguage) return setLanguage
+
   let results = new RegExp('[\?&]lng=([^&#]*)').exec(window.location.href);
   if (results == null) {
     // default to English
