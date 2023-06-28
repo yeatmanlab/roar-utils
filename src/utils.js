@@ -4,8 +4,6 @@ import jsPsychPreload from '@jspsych/plugin-preload';
 import { deviceType, primaryInput } from 'detect-it';
 
 
-
-
 // converts a string to camel case
 export function camelize(string) {
   return string.replace(/^([A-Z])|[\s-_](\w)/g, (_0, p1, p2, _1) => {
@@ -26,9 +24,12 @@ export function camelizeFiles(files) {
   return obj;
 }
 
-// For testing function locally
-let assetStructure
-
+function getLanguage() {
+  let results = new RegExp('[\?&]lng=([^&#]*)').exec(window.location.href);
+  if (results == null) {
+    // default to English
+     return 'en';
+  }
   return decodeURI(results[1]) || 0;
 }
 
