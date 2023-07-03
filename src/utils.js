@@ -1,7 +1,8 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-import jsPsychPreload from '@jspsych/plugin-preload';
-import { deviceType, primaryInput } from 'detect-it';
+// import jsPsychPreload from '@jspsych/plugin-preload';
+// import { deviceType, primaryInput } from 'detect-it';
+import fs from 'fs'
 
 
 // converts a string to camel case
@@ -70,6 +71,18 @@ function getDevice() {
   return 'keyboard'
 }
 
+let parsedJson
+
+try {
+  const rawData = fs.readFileSync('./assetStructure.json')
+  parsedJson =JSON.parse(rawData)
+
+  generateAssetObject(parsedJson, 'google.com')
+} catch (error) {
+  console.error(error)
+}
+
+
 // Takes in a JSON file and a cloud storage bucket URI and returns an object with the the asset paths mapped to thier file names, categorized by media type.
 // Ex.
 // {
@@ -81,7 +94,8 @@ function getDevice() {
 //   }
 // }
 
-export function generateAssetObject(json, bucketURI) {
+
+export function generateAssetObject(json, bucketURI, multilingual, multidevice) {
   let assets = { images: {}, video: {}, audio: {} };
   const lng = getLanguage();
   const device = getDevice();
@@ -95,18 +109,27 @@ export function generateAssetObject(json, bucketURI) {
     if (mimeType.startsWith('video/')) return 'video';
     if (mimeType.startsWith('audio/')) return 'audio';
     throw new Error(`Unsupported MIME type for file: ${filePath}. Only image, video, and audio files are supported.`);
-  }
+  };
 
-  const handleAssets = (obj, type) => {
-    obj[type].forEach((filePath) => {
+  const handleAssets = (arr, type, nestedInLangSpecific = false, isDefault = false) => {
+    arr.forEach((filePath) => {
       const assetType = getAssetType(filePath);
       const parsedFileName = path.parse(filePath).name;
       const camelizedFileName = camelize(parsedFileName);
 
-      let formattedValue
-
-      if (type === 'languageSpecific') {
+      let formattedValue;
+      if ((isDefault && nestedInLangSpecific && type === 'device') || (nestedInLangSpecific && type === 'device')) {
         formattedValue = `${bucketURI}/${lng}/${device}/${filePath}`;
+      } else if ((isDefault && nestedInLangSpecific && type === 'shared') || (nestedInLangSpecific && type === 'shared')) {
+        formattedValue = `${bucketURI}/${lng}/shared/${filePath}`;
+      } else if (type === 'device') {
+        formattedValue = `${bucketURI}/${device}/${filePath}`;
+      } else if (type === 'shared/device') {
+        formattedValue = `${bucketURI}/shared/${device}/${filePath}`;
+      } else if (type === 'languageSpecific') {
+        formattedValue = `${bucketURI}/${lng}/${filePath}`;
+      } else if (type === 'default') {
+        formattedValue = `${bucketURI}/${filePath}`
       } else {
         formattedValue = `${bucketURI}/shared/${filePath}`;
       }
@@ -115,18 +138,47 @@ export function generateAssetObject(json, bucketURI) {
     });
   };
 
-  const handleGroupAssets = (groupObject) => {
-    ['languageSpecific', 'shared'].forEach((type) => {
-      handleAssets(groupObject, type);
-    });
+  const handleGroupAssets = (groupObject, isDefault = false) => {
+    if (Array.isArray(groupObject)) {
+      handleAssets(groupObject, 'default');
+    } else {
+      if (groupObject.languageSpecific) {
+        if (Array.isArray(groupObject.languageSpecific)) {
+          handleAssets(groupObject.languageSpecific, 'languageSpecific');
+        } else {
+          Object.entries(groupObject.languageSpecific).forEach(([type, filePaths]) => {
+            handleAssets(filePaths, type, true, isDefault);
+          });
+        }
+      }
+      if (groupObject.device) {
+        handleAssets(groupObject.device, 'device');
+      }
+      if (groupObject.shared) {
+        if (Array.isArray(groupObject.shared)) {
+          handleAssets(groupObject.shared, 'shared');
+        } else {
+          // Here we handle the case where 'shared' is an object containing arrays
+          Object.entries(groupObject.shared).forEach(([type, filePaths]) => {
+            if (type === 'device') {
+              handleAssets(filePaths, 'shared/device'); // Special case for 'device' nested in 'shared'
+            } else {
+              handleAssets(filePaths, 'shared');
+            }
+          });
+        }
+      }
+    }
   };
 
   if (json.preload) {
-    Object.values(json.preload).forEach((groupObject) => {
+    Object.entries(json.preload).forEach(([group, groupObject]) => {
       handleGroupAssets(groupObject);
     });
-  } else if (json.all) {
-    handleGroupAssets(json.all);
+  }
+
+  if (json.default) {
+    handleGroupAssets(json.default, true);
   }
 
   return assets;
