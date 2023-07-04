@@ -71,13 +71,44 @@ function getDevice() {
   return 'keyboard'
 }
 
+function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
+  if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
+      return `${bucketURI}/${lng}/${device}/${filePath}`;
+  } else if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
+      return `${bucketURI}/${lng}/shared/${filePath}`;
+  } else if (type === 'device') {
+      return `${bucketURI}/${device}/${filePath}`;
+  } else if (type === 'shared/device') {
+      return `${bucketURI}/shared/${device}/${filePath}`;
+  } else if (type === 'languageSpecific') {
+      return `${bucketURI}/${lng}/${filePath}`;
+  } else if (type === 'default') {
+      return `${bucketURI}/${filePath}`;
+  } else {
+      return `${bucketURI}/shared/${filePath}`;
+  }
+}
+
+function getAssetType(asset) {
+  const mimeType = mime.lookup(asset);
+  if (!mimeType) {
+      throw new Error(`Unrecognized file extension in path: ${asset}`);
+  }
+  if (mimeType.startsWith('image/')) return 'images';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  if (mimeType.startsWith('video/')) return 'video';
+  throw new Error(`Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`);
+}
+
 let parsedJson
 
 try {
   const rawData = fs.readFileSync('./assetStructure.json')
   parsedJson =JSON.parse(rawData)
 
-  generateAssetObject(parsedJson, 'google.com')
+  // generateAssetObject(parsedJson, 'google.com')
+  createPreloadTrials(parsedJson, 'google.com')
+
 } catch (error) {
   console.error(error)
 }
@@ -100,41 +131,14 @@ export function generateAssetObject(json, bucketURI, multilingual, multidevice) 
   const lng = getLanguage();
   const device = getDevice();
 
-  const getAssetType = (filePath) => {
-    const mimeType = mime.lookup(filePath);
-    if (!mimeType) {
-      throw new Error(`Unrecognized file extension in path: ${filePath}`);
-    }
-    if (mimeType.startsWith('image/')) return 'images';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
-    throw new Error(`Unsupported MIME type for file: ${filePath}. Only image, video, and audio files are supported.`);
-  };
-
   const handleAssets = (arr, type, nestedInLangSpecific = false, isDefault = false) => {
     arr.forEach((filePath) => {
       const assetType = getAssetType(filePath);
       const parsedFileName = path.parse(filePath).name;
       const camelizedFileName = camelize(parsedFileName);
+      const formattedURL = getFormattedURL(bucketURI, filePath, lng, device, type, nestedInLangSpecific, isDefault);
 
-      let formattedValue;
-      if ((isDefault && nestedInLangSpecific && type === 'device') || (nestedInLangSpecific && type === 'device')) {
-        formattedValue = `${bucketURI}/${lng}/${device}/${filePath}`;
-      } else if ((isDefault && nestedInLangSpecific && type === 'shared') || (nestedInLangSpecific && type === 'shared')) {
-        formattedValue = `${bucketURI}/${lng}/shared/${filePath}`;
-      } else if (type === 'device') {
-        formattedValue = `${bucketURI}/${device}/${filePath}`;
-      } else if (type === 'shared/device') {
-        formattedValue = `${bucketURI}/shared/${device}/${filePath}`;
-      } else if (type === 'languageSpecific') {
-        formattedValue = `${bucketURI}/${lng}/${filePath}`;
-      } else if (type === 'default') {
-        formattedValue = `${bucketURI}/${filePath}`
-      } else {
-        formattedValue = `${bucketURI}/shared/${filePath}`;
-      }
-
-      assets[assetType][camelizedFileName] = formattedValue;
+      assets[assetType][camelizedFileName] = formattedURL;
     });
   };
 
@@ -204,73 +208,87 @@ export function generateAssetObject(json, bucketURI, multilingual, multidevice) 
 //   },
 // }
 
+
 export function createPreloadTrials(jsonData, bucketURI) {
   let preloadTrials = {};
-  const lng = getLanguage()
-  const device = getDevice()
+  const lng = getLanguage();
+  const device = getDevice();
 
-  let topLevelKey = jsonData.hasOwnProperty('preload') ? 'preload' : 'all';
+  function handleAssets(assets, group, type, nestedInLangSpecific = false, isDefault = false) {
+      assets.forEach((filePath) => {
+          let assetType = getAssetType(filePath);
+          const formattedURL = getFormattedURL(bucketURI, filePath, lng, device, type, nestedInLangSpecific, isDefault);
 
-  // Iterate over groups ('preload') or asset types ('all')
-  for (let key in jsonData[topLevelKey]) {
-      if (topLevelKey === 'preload') {
-          let groupAssets = jsonData[topLevelKey][key];
-          preloadTrials[key] = generatePreloadTrial(groupAssets, bucketURI, lng, device);
+          // Initialize preloadTrials[group] if it does not exist
+          if (!preloadTrials[group]) {
+              preloadTrials[group] = {
+                  type: 'jsPsychPreload',
+                  message: 'The experiment is loading',
+                  show_progress_bar: true,
+                  continue_after_error: false,
+                  error_message: '',
+                  show_detailed_errors: true,
+                  max_load_time: null,
+                  on_error: null,
+                  on_success: null,
+                  images: [],
+                  audio: [],
+                  video: []
+              };
+          }
+
+          // Add formattedURL to the corresponding array in preloadTrials[group]
+          preloadTrials[group][assetType].push(formattedURL);
+      });
+  }
+
+  function handleGroupAssets(group, groupObject, isDefault = false) {
+      if (Array.isArray(groupObject)) {
+          handleAssets(groupObject, group, 'default');
       } else {
-          preloadTrials[topLevelKey] = generatePreloadTrial(jsonData[topLevelKey], bucketURI, lng, device);
-          break;
-      }
+          if (groupObject.languageSpecific) {
+              if (Array.isArray(groupObject.languageSpecific)) {
+                  handleAssets(groupObject.languageSpecific, group, 'languageSpecific');
+              } else {
+                  Object.entries(groupObject.languageSpecific).forEach(([type, filePaths]) => {
+                    handleAssets(filePaths, group, type, true, isDefault);
+                });
+            }
+        }
+        if (groupObject.device) {
+            handleAssets(groupObject.device, group, 'device');
+        }
+        if (groupObject.shared) {
+            if (Array.isArray(groupObject.shared)) {
+                handleAssets(groupObject.shared, group, 'shared');
+            } else {
+                // Here we handle the case where 'shared' is an object containing arrays
+                Object.entries(groupObject.shared).forEach(([type, filePaths]) => {
+                    if (type === 'device') {
+                        handleAssets(filePaths, group, 'shared/device'); // Special case for 'device' nested in 'shared'
+                    } else {
+                        handleAssets(filePaths, group, 'shared');
+                    }
+                });
+            }
+        }
+    }
+  }
+
+  if (jsonData.preload) {
+      Object.entries(jsonData.preload).forEach(([group, groupObject]) => {
+          handleGroupAssets(group, groupObject);
+      });
+  }
+
+  if (jsonData.default) {
+      handleGroupAssets('default', jsonData.default, true);
   }
 
   return preloadTrials;
 }
 
-function generatePreloadTrial(groupAssets, bucketURI, lng, device) {
-  let trial = {
-      type: jsPsychPreload,
-      images: [],
-      audio: [],
-      video: [],
-      message: 'The experiment is loading',
-      show_progress_bar: true,
-      continue_after_error: false,
-      error_message: '',
-      show_detailed_errors: true,
-      max_load_time: null,
-      on_error: null,
-      on_success: null
-  };
 
-  ['languageSpecific', 'shared'].forEach(type => {
-      if (groupAssets[type]) {
-          groupAssets[type].forEach(asset => {
-              let mimeType = mime.lookup(asset);
 
-              let formattedURL
-
-              if (type === 'languageSpecific') {
-                formattedURL = `${bucketURI}/${lng}/${device}/${asset}`;
-              } else {
-                formattedURL = `${bucketURI}/shared/${asset}`;
-              }
-
-              if (mimeType.startsWith('image/')) {
-                  trial.images.push(formattedURL);
-              }
-              else if (mimeType.startsWith('audio/')) {
-                  trial.audio.push(formattedURL);
-              }
-              else if (mimeType.startsWith('video/')) {
-                  trial.video.push(formattedURL);
-              }
-              else {
-                  throw new Error('Invalid MIME type. Only image, audio, and video file types are allowed.');
-              }
-          });
-      }
-  });
-
-  return trial;
-}
  
 
