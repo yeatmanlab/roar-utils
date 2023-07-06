@@ -2,7 +2,6 @@ import path from 'path-browserify';
 import mime from 'mime-types';
 import jsPsychPreload from '@jspsych/plugin-preload';
 import { deviceType, primaryInput } from 'detect-it';
-import fs from 'fs'
 
 
 // converts a string to camel case
@@ -68,10 +67,10 @@ function getDevice() {
   if (deviceType === 'touchOnly' || (deviceType === 'hybrid' && primaryInput === 'touch')) {
     return 'mobile'
   }
-  return 'keyboard'
+  return 'desktop'
 }
 
-export function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
+function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
   if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
       return `${bucketURI}/${lng}/${device}/${filePath}`;
   } else if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
@@ -89,7 +88,7 @@ export function getFormattedURL(bucketURI, filePath, lng, device, type, nested, 
   }
 }
 
-export function getAssetType(asset) {
+function getAssetType(asset) {
   const mimeType = mime.lookup(asset);
   if (!mimeType) {
       throw new Error(`Unrecognized file extension in path: ${asset}`);
@@ -100,21 +99,9 @@ export function getAssetType(asset) {
   throw new Error(`Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`);
 }
 
-let parsedJson
-
-try {
-  const rawData = fs.readFileSync('./assetStructure.json')
-  parsedJson =JSON.parse(rawData)
-
-  // generateAssetObject(parsedJson, 'google.com')
-  createPreloadTrials(parsedJson, 'google.com')
-
-} catch (error) {
-  console.error(error)
-}
 
 
-// Takes in a JSON file and a cloud storage bucket URI and returns an object with the the asset paths mapped to thier file names, categorized by media type.
+// Takes in a JSON file, a cloud storage bucket URI, and optionally a language code and returns an object with the the asset paths mapped to thier file names, categorized by media type.
 // Ex.
 // {
 //   images: {
@@ -124,7 +111,6 @@ try {
 //     audio1: 'path/to/audio1.mp3'
 //   }
 // }
-
 
 export function generateAssetObject(json, bucketURI, language) {
   let assets = { images: {}, video: {}, audio: {} };
@@ -143,36 +129,47 @@ export function generateAssetObject(json, bucketURI, language) {
   };
 
   const handleGroupAssets = (groupObject, isDefault = false) => {
+    // Handles the case where groupObject is an array.
     if (Array.isArray(groupObject)) {
-      handleAssets(groupObject, 'default');
-    } else {
-      if (groupObject.languageSpecific) {
-        if (Array.isArray(groupObject.languageSpecific)) {
-          handleAssets(groupObject.languageSpecific, 'languageSpecific');
-        } else {
-          Object.entries(groupObject.languageSpecific).forEach(([type, filePaths]) => {
-            handleAssets(filePaths, type, true, isDefault);
-          });
-        }
-      }
-      if (groupObject.device) {
-        handleAssets(groupObject.device, 'device');
-      }
-      if (groupObject.shared) {
-        if (Array.isArray(groupObject.shared)) {
-          handleAssets(groupObject.shared, 'shared');
-        } else {
-          // Here we handle the case where 'shared' is an object containing arrays
-          Object.entries(groupObject.shared).forEach(([type, filePaths]) => {
-            if (type === 'device') {
-              handleAssets(filePaths, 'shared/device'); // Special case for 'device' nested in 'shared'
-            } else {
-              handleAssets(filePaths, 'shared');
-            }
-          });
-        }
-      }
+        handleAssets(groupObject, 'default');
+        return;
     }
+
+    // Handles the case where groupObject is language-specific.
+    if (groupObject.languageSpecific) {
+        if (Array.isArray(groupObject.languageSpecific)) {
+            handleAssets(groupObject.languageSpecific, 'languageSpecific');
+        } else {
+            handleAssetsForAllTypes(groupObject.languageSpecific, isDefault);
+        }
+    }
+
+    // Handles the case where groupObject is device-specific.
+    if (groupObject.device) {
+        handleAssets(groupObject.device, 'device');
+    }
+
+    // Handles the case where groupObject is shared.
+    if (groupObject.shared) {
+        handleSharedAssets(groupObject.shared);
+    }
+  };
+
+  const handleAssetsForAllTypes = (object, isDefault) => {
+      Object.entries(object).forEach(([type, filePaths]) => {
+          handleAssets(filePaths, type, true, isDefault);
+      });
+  };
+
+  const handleSharedAssets = (sharedObject) => {
+      if (Array.isArray(sharedObject)) {
+          handleAssets(sharedObject, 'shared');
+      } else {
+          Object.entries(sharedObject).forEach(([type, filePaths]) => {
+              const assetType = type === 'device' ? 'shared/device' : 'shared';
+              handleAssets(filePaths, assetType);
+          });
+      }
   };
 
   if (json.preload) {
@@ -189,7 +186,7 @@ export function generateAssetObject(json, bucketURI, language) {
 }
 
 
-// Takes in a JSON file and a cloud storage bucket URI and returns an object with groups of preload trials
+// Takes in a JSON file, a cloud storage bucket URI, and optionally a language code and returns an object with groups of preload trials
 // Ex.
 // const preloadTrials = {
 //   preloadStageId1: {
@@ -243,35 +240,54 @@ export function createPreloadTrials(jsonData, bucketURI, language) {
   }
 
   function handleGroupAssets(group, groupObject, isDefault = false) {
-      if (Array.isArray(groupObject)) {
-          handleAssets(groupObject, group, 'default');
-      } else {
-          if (groupObject.languageSpecific) {
-              if (Array.isArray(groupObject.languageSpecific)) {
-                  handleAssets(groupObject.languageSpecific, group, 'languageSpecific');
-              } else {
-                  Object.entries(groupObject.languageSpecific).forEach(([type, filePaths]) => {
-                    handleAssets(filePaths, group, type, true, isDefault);
-                });
-            }
-        }
-        if (groupObject.device) {
-            handleAssets(groupObject.device, group, 'device');
-        }
-        if (groupObject.shared) {
-            if (Array.isArray(groupObject.shared)) {
-                handleAssets(groupObject.shared, group, 'shared');
-            } else {
-                // Here we handle the case where 'shared' is an object containing arrays
-                Object.entries(groupObject.shared).forEach(([type, filePaths]) => {
-                    if (type === 'device') {
-                        handleAssets(filePaths, group, 'shared/device'); // Special case for 'device' nested in 'shared'
-                    } else {
-                        handleAssets(filePaths, group, 'shared');
-                    }
-                });
-            }
-        }
+
+    // Handles the case where groupObject is an array.
+    if (Array.isArray(groupObject)) {
+        handleAssets(groupObject, group, 'default');
+        return;
+    }
+
+    // Handles the case where groupObject is language-specific.
+    if (groupObject.languageSpecific) {
+        handleLanguageSpecificAssets(group, groupObject.languageSpecific, isDefault);
+    }
+
+    // Handles the case where groupObject is device-specific.
+    if (groupObject.device) {
+        handleAssets(groupObject.device, group, 'device');
+    }
+
+    // Handles the case where groupObject is shared.
+    if (groupObject.shared) {
+        handleSharedAssets(group, groupObject.shared);
+    }
+  }
+
+  // Helper function to handle language specific assets.
+  function handleLanguageSpecificAssets(group, languageSpecificObject, isDefault) {
+    if (Array.isArray(languageSpecificObject)) {
+        handleAssets(languageSpecificObject, group, 'languageSpecific');
+    } else {
+        handleAssetsForAllTypes(group, languageSpecificObject, isDefault);
+    }
+  }
+
+  // Extracted the common logic to handle assets for all types into a separate function.
+  function handleAssetsForAllTypes(group, object, isDefault) {
+    Object.entries(object).forEach(([type, filePaths]) => {
+        handleAssets(filePaths, group, type, true, isDefault);
+    });
+  }
+
+  // Helper function to handle shared assets.
+  function handleSharedAssets(group, sharedObject) {
+    if (Array.isArray(sharedObject)) {
+        handleAssets(sharedObject, group, 'shared');
+    } else {
+        Object.entries(sharedObject).forEach(([type, filePaths]) => {
+            const assetType = type === 'device' ? 'shared/device' : 'shared';
+            handleAssets(filePaths, group, assetType);
+        });
     }
   }
 
