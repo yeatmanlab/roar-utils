@@ -1,7 +1,7 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-// import jsPsychPreload from '@jspsych/plugin-preload';
-// import { deviceType, primaryInput } from 'detect-it';
+import jsPsychPreload from '@jspsych/plugin-preload';
+import { deviceType, primaryInput } from 'detect-it';
 import fs from 'fs'
 
 
@@ -71,7 +71,7 @@ function getDevice() {
   return 'keyboard'
 }
 
-function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
+export function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
   if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
       return `${bucketURI}/${lng}/${device}/${filePath}`;
   } else if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
@@ -89,7 +89,7 @@ function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefau
   }
 }
 
-function getAssetType(asset) {
+export function getAssetType(asset) {
   const mimeType = mime.lookup(asset);
   if (!mimeType) {
       throw new Error(`Unrecognized file extension in path: ${asset}`);
@@ -126,9 +126,9 @@ try {
 // }
 
 
-export function generateAssetObject(json, bucketURI, multilingual, multidevice) {
+export function generateAssetObject(json, bucketURI, language) {
   let assets = { images: {}, video: {}, audio: {} };
-  const lng = getLanguage();
+  const lng = getLanguage(language);
   const device = getDevice();
 
   const handleAssets = (arr, type, nestedInLangSpecific = false, isDefault = false) => {
@@ -209,9 +209,9 @@ export function generateAssetObject(json, bucketURI, multilingual, multidevice) 
 // }
 
 
-export function createPreloadTrials(jsonData, bucketURI) {
+export function createPreloadTrials(jsonData, bucketURI, language) {
   let preloadTrials = {};
-  const lng = getLanguage();
+  const lng = getLanguage(language);
   const device = getDevice();
 
   function handleAssets(assets, group, type, nestedInLangSpecific = false, isDefault = false) {
@@ -222,7 +222,7 @@ export function createPreloadTrials(jsonData, bucketURI) {
           // Initialize preloadTrials[group] if it does not exist
           if (!preloadTrials[group]) {
               preloadTrials[group] = {
-                  type: 'jsPsychPreload',
+                  type: jsPsychPreload,
                   message: 'The experiment is loading',
                   show_progress_bar: true,
                   continue_after_error: false,
