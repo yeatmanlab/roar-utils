@@ -54,21 +54,30 @@ export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
 function getLanguage(setLanguage) {
   if (setLanguage) return setLanguage
 
-  let results = new RegExp('[\?&]lng=([^&#]*)').exec(window.location.href);
-  if (results == null) {
-    // default to English
-     return 'en';
-  }
-  return decodeURI(results[1]) || 0;
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('lng') || 'en';
 }
 
 // Gets the device type based on the device inputs
-function getDevice() {
+export function getDevice() {
   if (deviceType === 'touchOnly' || (deviceType === 'hybrid' && primaryInput === 'touch')) {
     return 'mobile'
   }
   return 'desktop'
 }
+
+/**
+ * Returns the formatted URL based on different conditions for asset type, nesting and default values.
+ *
+ * @param {string} bucketURI - The bucket URI where the assets are stored. Ex. 'https://storage.googleapis.com/${bucketName}
+ * @param {string} filePath - The file path of the asset.
+ * @param {string} lng - The language identifier as a ISO 639-1 code. Ex. 'en' for English
+ * @param {string} device - The device identifier.
+ * @param {string} type - The type of asset category. Can be one of the following: 'device', 'shared', 'shared/device', 'languageSpecific', 'default'.
+ * @param {boolean} nested - Indicates if the asset is nested in language specific data. Default is false.
+ * @param {boolean} isDefault - Indicates if the asset is from default data. Default is false.
+ * @returns {string} The formatted URL based on the given conditions. Ex. 'https://storage.googleapis.com/${bucketName}/${lng}/${device}/${file}'
+ */
 
 function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
   if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
@@ -101,16 +110,49 @@ function getAssetType(asset) {
 
 
 
-// Takes in a JSON file, a cloud storage bucket URI, and optionally a language code and returns an object with the the asset paths mapped to thier file names, categorized by media type.
-// Ex.
-// {
-//   images: {
-//     image1: 'path/to/image1.jpg'
-//   }
-//   audio: {
-//     audio1: 'path/to/audio1.mp3'
-//   }
-// }
+/**
+ * Generates an asset object from a given JSON object, bucket URI and language.
+ *
+ * @param {object} json - The JSON object containing data about assets. It may contain properties: 'preload' and 'default', each having their own structure.
+ * @param {string} bucketURI - The bucket URI where the assets are stored.
+ * @param {string} language - (Optional) The language identifier as a ISO 639-1 code. Ex. 'en' for English
+ * @returns {object} assets - The generated asset object, structured as follows: { images: {}, video: {}, audio: {} }. Each sub-object is a collection of assets by type. Each asset key is a camelized file name, and the value is a formatted URL.
+ *
+ * @example
+ * 
+ * JSON structure for an app that has multilingual and multidevice support
+ * 
+ * const json = {
+ *   "default": {
+ *       "languageSpecific": {
+ *           "device": ["image_asset2.png", "audio_asset2.mp3",,
+ *           "shared": ["shared_video1.mp4",]
+ *       },
+ *       "shared": ["shared_image_asset2.png", "shared_audio_asset2.mp3"]
+ *   }
+ * };
+ * 
+ * const bucketURI = 'https://storage.googleapis.com';
+ * const language = 'en';
+ * 
+ * generateAssetObject(json, bucketURI, language);
+ * 
+ *  Outputs: 
+ *     {
+ *       images: {
+ *         imageAsset2: 'https://storage.googleapis.com/en/desktop/image_asset2.png',
+ *         sharedImageAsset2: 'https://storage.googleapis.com/en/shared/shared_image_asset2.png',
+ *       },
+ *       video: {
+ *         sharedVideo1: 'https://storage.googleapis.com/en/shared/shared_video1.mp4',
+ *       },
+ *       audio: {
+ *         audioAsset2: 'https://storage.googleapis.com/en/desktop/audio_asset2.mp3',
+ *         sharedAudioAsset2: 'https://storage.googleapis.com/shared/desktop/shared_audio_asset2.mp3'
+ *       }
+ *     }
+ */
+
 
 export function generateAssetObject(json, bucketURI, language) {
   let assets = { images: {}, video: {}, audio: {} };
@@ -185,26 +227,54 @@ export function generateAssetObject(json, bucketURI, language) {
   return assets;
 }
 
-
-// Takes in a JSON file, a cloud storage bucket URI, and optionally a language code and returns an object with groups of preload trials
-// Ex.
-// const preloadTrials = {
-//   preloadStageId1: {
-//     type: jsPsychPreload,
-//     images: [`${bucketUri}/${lng}/${device}/path/to/image_asset1.png`],
-//     audios: [`${bucketUri}/${lng}/${device}/path/to/audio_asset1.png`],
-//     videos: [`${bucketUri}/${lng}/${device}/path/to/video_asset1.png`],
-//     ...otherPreloadOptions
-//   },
-//   preloadStageId2: {
-//     type: jsPsychPreload,
-//     images: [`${bucketUri}/${lng}/${device}/path/to/image_asset2.png`],
-//     audios: [`${bucketUri}/${lng}/${device}/path/to/audio_asset2.png`],
-//     videos: [`${bucketUri}/${lng}/${device}/path/to/video_asset2.png`],
-//     ...otherPreloadOptions
-//   },
-// }
-
+/**
+ * Creates jsPsych preload trial(s) for a jsPsych experiment from a given JSON object, bucket URI, and language.
+ *
+ * @param {object} jsonData - The JSON object containing data about assets. It may contain properties: 'preload' and 'default', each having their own structure.
+ * @param {string} bucketURI - The bucket URI where the assets are stored.
+ * @param {string} language - (Optional) The language identifier as a ISO 639-1 code. Ex. 'en' for English
+ * @returns {object} preloadTrials - The generated preload trials object, structured as follows:
+ *  - For each group (or 'default'), there's a key in the object.
+ *  - Each value is an object with properties corresponding to jsPsych preload plugin parameters, and separate arrays for 'images', 'audio', and 'video' URLs.
+ *
+ * @example
+ * 
+ * const jsonData = {
+ *   preload: {
+ *     image: ['file1.jpg', 'file2.jpg'],
+ *     video: ['file1.mp4', 'file2.mp4'],
+ *     audio: ['file1.mp3', 'file2.mp3']
+ *   },
+ *   default: {
+ *     image: ['file3.jpg', 'file4.jpg'],
+ *     video: ['file3.mp4', 'file4.mp4'],
+ *     audio: ['file3.mp3', 'file4.mp3']
+ *   }
+ * };
+ * 
+ *  const bucketURI = 'https://bucket.example.com';
+ *  const language = 'en';
+ * 
+ * createPreloadTrials(jsonData, bucketURI, language);
+ * 
+ * // Outputs: 
+ * // {
+ * //   default: {
+ * //     type: jsPsychPreload,
+ * //     message: 'The experiment is loading',
+ * //     show_progress_bar: true,
+ * //     continue_after_error: false,
+ * //     error_message: '',
+ * //     show_detailed_errors: true,
+ * //     max_load_time: null,
+ * //     on_error: null,
+ * //     on_success: null,
+ * //     images: ['https://bucket.example.com/en/file1.jpg', 'https://bucket.example.com/en/file2.jpg'],
+ * //     video: [...],
+ * //     audio: [...]
+ * //   },
+ * // }
+ */
 
 export function createPreloadTrials(jsonData, bucketURI, language) {
   let preloadTrials = {};

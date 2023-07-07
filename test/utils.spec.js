@@ -34,9 +34,13 @@ test('test the camelizeFiles function', () => {
   }
 });
 
+
+// 4 structures, each can be preloaded in groups or at once (default)
+
 const structures = [
   [
     {
+      "structure": "Multilingual and Multidevice",
       "preload": {
           "group1": {
                   "languageSpecific": {
@@ -64,7 +68,9 @@ const structures = [
     },
   ],
   [
-    {"default": {
+    {
+      "structure": "Multilingual and Multidevice",
+      "default": {
       "languageSpecific": {
           "device": ["audio_asset1.mp3", "video_asset2.mp4"],
           "shared": ["image_asset1.png", "nestedLang_shared_video2.mp4"]
@@ -78,7 +84,9 @@ const structures = [
       }
   ], 
   [
-    {"preload": {
+    {
+      "structure": "Only Multilingual",
+      "preload": {
         "group1": {
             "languageSpecific": ["image_asset1.png", "audio_asset1.mp3", "path/to/video_asset1.mp4"],
             "shared": ["image_asset2.png", "path/to/shared_audio_asset1.mp3", "path/to/shared_video_asset1.mp4"]
@@ -97,6 +105,7 @@ const structures = [
   ],
   [
     {
+      "structure": "Only Multilingual",
       "default": {
         "languageSpecific": ["image_asset1.png", "audio_asset1.mp3", "video_asset2.mp4"],
         "shared": ["image_asset2.png", "shared_audio_asset2.mp3", "shared_video_asset2.mp4"]
@@ -111,6 +120,7 @@ const structures = [
   ],
   [
     {
+      "structure": "Only Multidevice",
       "preload": {
         "group1": {
             "device": ["image_asset1.png", "audio_asset1.mp3", "video_asset1.mp4", "image_asset2.png"],
@@ -131,6 +141,7 @@ const structures = [
   ],
   [
     {
+      "structure": "Only Multidevice",
       "default": {
         "device": ["image_asset1.png", "audio_asset1.mp3", "video_asset1.mp4"],
         "shared": ["image_asset2.png", "shared_audio_asset1.mp3", "video_asset2.mp4"]
@@ -145,6 +156,7 @@ const structures = [
   ],
   [
     {
+      "structure": "No Multilingual and No multidevice",
       "preload": {
         "group1": ["image_asset1.png", "audio_asset1.mp3", "video_asset1.mp4", "image_asset2.png",],
         "group2": [ "audio_asset2.mp3", "video_asset2.mp4"]
@@ -159,6 +171,7 @@ const structures = [
   ],
   [
     {
+      "structure": "No Multilingual and No multidevice",
       "default": ["image_asset1.png", "audio_asset1.mp3", "image_asset2.jpg", "video_asset2.mp4"]
     }, 
     {
