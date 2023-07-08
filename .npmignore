@@ -4,3 +4,6 @@ assets/
 test/
 .eslintrc.json
 jest.config.js
+coverage/
+src/
+.babelrc

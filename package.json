@@ -1,13 +1,13 @@
 {
   "name": "@bdelab/roar-utils",
-  "version": "1.0.3",
+  "version": "1.0.10",
   "description": "A module containing utilities for ROAR such as helper functions and constants.",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "type": "module",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "format": "eslint . --ext .js,.ts --fix",
-    "test": "jest",
+    "test": "NODE_ENV=test jest",
     "build": "babel src -d lib"
   },
   "repository": {
@@ -28,7 +28,14 @@
     "roar-mp",
     "roar-pa"
   ],
-  "author": "Shoaib Mohammed and Philip Ziolkowski",
+  "contributors": [
+    {
+      "name": "Shoaib Mohammed"
+    },
+    {
+      "name": "Philip Ziolkowski"
+    }
+  ],
   "license": "STANFORD ACADEMIC SOFTWARE LICENSE FOR ROAR™",
   "bugs": {
     "url": "https://github.com/yeatmanlab/roar-utils/issues"
