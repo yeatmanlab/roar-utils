@@ -1,0 +1,6 @@
+.DS_Store
+**/node_modules
+assets/
+test/
+.eslintrc.json
+jest.config.js
