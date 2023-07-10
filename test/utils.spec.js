@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'path-browserify';
-import { generateAssetObject, createPreloadTrials, camelize, camelizeFiles } from '../src/utils';
+import { camelize, camelizeFiles } from '../src/utils';
+import { generateAssetObject, createPreloadTrials, } from '../src/experiment'
 
 test('test the camelize function', () => {
   const values = [

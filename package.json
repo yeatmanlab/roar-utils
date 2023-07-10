@@ -1,13 +1,14 @@
 {
-  "name": "roar-utils",
-  "version": "1.0.3",
+  "name": "@bdelab/roar-utils",
+  "version": "1.0.10",
   "description": "A module containing utilities for ROAR such as helper functions and constants.",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "type": "module",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "format": "eslint . --ext .js,.ts --fix",
-    "test": "jest"
+    "test": "NODE_ENV=test jest",
+    "build": "babel src -d lib"
   },
   "repository": {
     "type": "git",
@@ -27,7 +28,14 @@
     "roar-mp",
     "roar-pa"
   ],
-  "author": "Shoaib Mohammed",
+  "contributors": [
+    {
+      "name": "Shoaib Mohammed"
+    },
+    {
+      "name": "Philip Ziolkowski"
+    }
+  ],
   "license": "STANFORD ACADEMIC SOFTWARE LICENSE FOR ROAR™",
   "bugs": {
     "url": "https://github.com/yeatmanlab/roar-utils/issues"
@@ -41,6 +49,7 @@
     "path-browserify": "^1.0.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.22.6",
     "@babel/preset-env": "^7.20.2",
     "eslint": "^8.28.0",
     "eslint-config-airbnb-base": "^15.0.0",
