@@ -108,6 +108,22 @@ export function getAssetType(asset) {
   throw new Error(`Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`);
 }
 
+/**
+ * Calculates and returns age data based on the provided birth month, birth year, age, and age in months.
+ * 
+ * @function getAgeData
+ * 
+ * @param {string|number|null} birthMonth - The month of birth (1-12). If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} birthYear - The year of birth. If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} age - The age in years. If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} ageMonths - The age in months. If not provided, it will be calculated based on other parameters.
+ * 
+ * @returns {Object} ageData - The calculated age data.
+ * @returns {number|null} ageData.age - The calculated age in years.
+ * @returns {number|null} ageData.ageMonths - The calculated age in months.
+ * @returns {number|null} ageData.birthMonth - The calculated or provided month of birth.
+ * @returns {number|null} ageData.birthYear - The calculated or provided year of birth.
+ */
 
 export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
   const msPerYear = 1000 * 60 * 60 * 24 * 365.25; // milliseconds per year (accounting for leap years)
