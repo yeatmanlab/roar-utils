@@ -109,6 +109,59 @@ export function getAssetType(asset) {
 }
 
 
+export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25; // milliseconds per year (accounting for leap years)
+  const currDate = new Date();
+
+  const safeNumber = (value) => {
+    const numValue = Number(value);
+    return (Object.is(numValue, NaN) || numValue === 0) ? null : numValue;
+  };
+
+  const bm = safeNumber(birthMonth);
+  const by = safeNumber(birthYear);
+  const yearsOld = safeNumber(age);
+  const ageM = safeNumber(ageMonths);
+
+  const ageData = {
+    age: yearsOld,
+    ageMonths: ageM
+  };
+
+  if (bm && by) {
+    ageData.birthMonth = bm;
+    ageData.birthYear = by;
+
+    const birthDate = new Date(by, bm - 1, currDate.getDate());
+    const decimalYear = (currDate - birthDate) / msPerYear;
+    ageData.age = Math.floor(decimalYear);
+    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+  } else if (by) {
+    ageData.birthYear = by;
+    ageData.birthMonth = currDate.getMonth() + 1;
+
+    const birthDate = new Date(by, ageData.birthMonth - 1, currDate.getDate());
+    const decimalYear = (currDate - birthDate) / msPerYear;
+    ageData.age = Math.floor(decimalYear);
+    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+  } else if (ageM) {
+    const birthDate = new Date();
+    birthDate.setMonth(birthDate.getMonth() - ageM);
+    ageData.birthYear = birthDate.getFullYear();
+    ageData.birthMonth = birthDate.getMonth() + 1;
+    ageData.age = Math.floor((currDate - birthDate) / msPerYear);
+  } else if (yearsOld) {
+    ageData.birthYear = currDate.getFullYear() - yearsOld;
+    ageData.birthMonth = currDate.getMonth() + 1;
+    ageData.ageMonths = yearsOld * 12;
+  } else {
+    ageData.birthMonth = null;
+    ageData.birthYear = null;
+  }
+
+  return ageData;
+};
+
 
  
 
