@@ -294,7 +294,6 @@ const agePossibilities = [
 
 test('Sets the correct age fields for all possible inputs', () => {
   for (const poss of agePossibilities) {
-    console.log(poss)
     const ageData = getAgeData(poss.birthMonth, poss.birthYear, poss.age, poss.ageMonths)
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth)
