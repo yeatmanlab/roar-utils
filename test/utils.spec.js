@@ -1,6 +1,6 @@
 import os from 'node:os';
 import path from 'path-browserify';
-import { camelize, camelizeFiles } from '../src/utils';
+import { camelize, camelizeFiles, getAgeData } from '../src/utils';
 import { generateAssetObject, createPreloadTrials, } from '../src/experiment'
 
 test('test the camelize function', () => {
@@ -212,5 +212,93 @@ test('Creates the correct preload trials from all possible inputs', () => {
       expect(preloadTrials.default.images).toContain(struc[1].imageAsset2)
       expect(preloadTrials.default.video).toContain(struc[1].videoAsset2)
     }
+  }
+})
+
+const testDate = new Date()
+
+
+const agePossibilities = [
+  {
+    birthMonth: 8,
+    birthYear: 2009,
+    age: null,
+    ageMonths: null, 
+    expectedBirthMonth: 8,
+    expectedBirthYear: 2009,
+    expectedAge: testDate.getFullYear() - 2009,
+    expectedAgeMonths: 168
+  },
+  {
+    birthMonth: 5,
+    birthYear: 2000,
+    age: 23,
+    ageMonths: null, 
+    expectedBirthMonth: 5,
+    expectedBirthYear: 2000,
+    expectedAge: 23,
+    expectedAgeMonths: 279
+  },
+  {
+    birthMonth: null,
+    birthYear: 2007,
+    age: null,
+    ageMonths: null,
+    expectedBirthMonth: testDate.getMonth() + 1,
+    expectedBirthYear: 2007,
+    expectedAge: testDate.getFullYear() - 2007,
+    expectedAgeMonths: (testDate.getFullYear() - 2007) * 12
+  },
+  {
+    birthMonth: null,
+    birthYear: null,
+    age: null,
+    ageMonths: 254,
+    expectedBirthMonth: 6,
+    expectedBirthYear: testDate.getFullYear() - Math.round(254 / 12),
+    expectedAge: Math.round(254 / 12),
+    expectedAgeMonths: 254
+  },
+  {
+    birthMonth: null,
+    birthYear: null,
+    age: 12,
+    ageMonths: null,
+    expectedBirthMonth: testDate.getMonth() + 1,
+    expectedBirthYear: testDate.getFullYear() - 12,
+    expectedAge: 12,
+    expectedAgeMonths: 12 * 12
+  },
+  {
+    birthMonth: 9,
+    birthYear: null,
+    age: null,
+    ageMonths: null,
+    expectedBirthMonth: null,
+    expectedBirthYear: null,
+    expectedAge: null,
+    expectedAgeMonths: null
+  },
+  {
+    birthMonth: null,
+    birthYear: null,
+    age: null,
+    ageMonths: null,
+    expectedBirthMonth: null,
+    expectedBirthYear: null,
+    expectedAge: null,
+    expectedAgeMonths: null
+  },
+
+]
+
+test('Sets the correct age fields for all possible inputs', () => {
+  for (const poss of agePossibilities) {
+    const ageData = getAgeData(poss.birthMonth, poss.birthYear, poss.age, poss.ageMonths)
+
+    expect(ageData.birthMonth).toBe(poss.expectedBirthMonth)
+    expect(ageData.birthYear).toBe(poss.expectedBirthYear)
+    expect(ageData.age).toBe(poss.expectedAge)
+    expect(ageData.ageMonths).toBe(poss.expectedAgeMonths)
   }
 })

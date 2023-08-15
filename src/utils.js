@@ -1,6 +1,5 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-import jsPsychPreload from '@jspsych/plugin-preload';
 import { deviceType, primaryInput } from 'detect-it';
 
 
@@ -108,6 +107,75 @@ export function getAssetType(asset) {
   throw new Error(`Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`);
 }
 
+/**
+ * Calculates and returns age data based on the provided birth month, birth year, age, and age in months.
+ * 
+ * @function getAgeData
+ * 
+ * @param {string|number|null} birthMonth - The month of birth (1-12). If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} birthYear - The year of birth. If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} age - The age in years. If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} ageMonths - The age in months. If not provided, it will be calculated based on other parameters.
+ * 
+ * @returns {Object} ageData - The calculated age data.
+ * @returns {number|null} ageData.age - The calculated age in years.
+ * @returns {number|null} ageData.ageMonths - The calculated age in months.
+ * @returns {number|null} ageData.birthMonth - The calculated or provided month of birth.
+ * @returns {number|null} ageData.birthYear - The calculated or provided year of birth.
+ */
+
+export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25; // milliseconds per year (accounting for leap years)
+  const currDate = new Date();
+
+  const safeNumber = (value) => {
+    const numValue = Number(value);
+    return (Object.is(numValue, NaN) || numValue === 0) ? null : numValue;
+  };
+
+  const bm = safeNumber(birthMonth);
+  const by = safeNumber(birthYear);
+  const yearsOld = safeNumber(age);
+  const ageM = safeNumber(ageMonths);
+
+  const ageData = {
+    age: yearsOld,
+    ageMonths: ageM
+  };
+
+  if (bm && by) {
+    ageData.birthMonth = bm;
+    ageData.birthYear = by;
+
+    const birthDate = new Date(by, bm - 1, currDate.getDate());
+    const decimalYear = (currDate - birthDate) / msPerYear;
+    ageData.age = Math.floor(decimalYear);
+    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+  } else if (by) {
+    ageData.birthYear = by;
+    ageData.birthMonth = currDate.getMonth() + 1;
+
+    const birthDate = new Date(by, ageData.birthMonth - 1, currDate.getDate());
+    const decimalYear = (currDate - birthDate) / msPerYear;
+    ageData.age = Math.floor(decimalYear);
+    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+  } else if (ageM) {
+    const birthDate = new Date();
+    birthDate.setMonth(birthDate.getMonth() - ageM);
+    ageData.birthYear = birthDate.getFullYear();
+    ageData.birthMonth = birthDate.getMonth() + 1;
+    ageData.age = Math.floor((currDate - birthDate) / msPerYear);
+  } else if (yearsOld) {
+    ageData.birthYear = currDate.getFullYear() - yearsOld;
+    ageData.birthMonth = currDate.getMonth() + 1;
+    ageData.ageMonths = yearsOld * 12;
+  } else {
+    ageData.birthMonth = null;
+    ageData.birthYear = null;
+  }
+
+  return ageData;
+};
 
 
  
