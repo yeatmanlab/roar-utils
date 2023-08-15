@@ -1,0 +1,20 @@
+name: Unit tests
+on: 
+  pull_request:
+    # re-run if new commits are added (synchronize)
+    types: [opened, reopened, synchronize]
+
+# Cancels a workflow process when new commits are made
+concurrency: 
+  group: ci-preview-tests-${{ github.ref }}-1
+  cancel-in-progress: true    
+
+jobs:
+  run_unit_tests:
+    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies and run tests
+        run: npm ci && npm run test

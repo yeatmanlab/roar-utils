@@ -1,6 +1,5 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-import jsPsychPreload from '@jspsych/plugin-preload';
 import { deviceType, primaryInput } from 'detect-it';
 
 
