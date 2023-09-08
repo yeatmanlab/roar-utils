@@ -42,6 +42,7 @@
   },
   "homepage": "https://github.com/yeatmanlab/roar-utils#readme",
   "dependencies": {
+    "@jspsych/plugin-html-button-response": "^1.1.2",
     "@jspsych/plugin-preload": "^1.1.2",
     "detect-it": "^4.0.1",
     "mime-types": "^2.1.35",

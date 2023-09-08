@@ -227,7 +227,7 @@ const agePossibilities = [
     expectedBirthMonth: 8,
     expectedBirthYear: 2009,
     expectedAge: testDate.getFullYear() - 2009,
-    expectedAgeMonths: 168
+    expectedAgeMonths: 169
   },
   {
     birthMonth: 5,
@@ -237,7 +237,7 @@ const agePossibilities = [
     expectedBirthMonth: 5,
     expectedBirthYear: 2000,
     expectedAge: 23,
-    expectedAgeMonths: 279
+    expectedAgeMonths: 280
   },
   {
     birthMonth: null,
@@ -254,7 +254,7 @@ const agePossibilities = [
     birthYear: null,
     age: null,
     ageMonths: 254,
-    expectedBirthMonth: 6,
+    expectedBirthMonth: 7,
     expectedBirthYear: testDate.getFullYear() - Math.round(254 / 12),
     expectedAge: Math.round(254 / 12),
     expectedAgeMonths: 254

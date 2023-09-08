@@ -6,3 +6,4 @@ export const WRONG_KEY_TEXT = 'right arrow key';
 
 export * from './utils.js';
 export * from './experiment.js';
+export * from './trials.js';
