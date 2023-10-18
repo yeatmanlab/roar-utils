@@ -177,6 +177,34 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
   return ageData;
 };
 
+/**
+ * Return grade after min/max filtering and accounting for string values.
+ * 
+ * @function getGrade
+ * 
+ * @param {string|number|null} inputGrade - The input grade.
+ * @param {number} gradeMin - The minimum grade. Default is 0 (for Kindergarten).
+ * @param {number} gradeMax - The maximum grade. Default is 12.
+ * 
+ * @returns {number} numeric grade
+ */
+export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 12) => {
+  const parsedGrade = Number(inputGrade)
+  let grade;
 
+  if (isNaN(parsedGrade)) {
+    // Assume grade is K, TK, or PK
+    grade = gradeMin
+  } else if (parsedGrade < gradeMin) {
+    grade = gradeMin;
+  } else if (parsedGrade > gradeMax) {
+    grade = gradeMax;
+  } else {
+    // grade is within range and is a number
+    grade = parsedGrade
+  }
+
+  return grade;
+};
  
 
