@@ -1,6 +1,6 @@
 import os from 'node:os';
 import path from 'path-browserify';
-import { camelize, camelizeFiles, getAgeData } from '../src/utils';
+import { camelize, camelizeFiles, getAgeData, getGrade } from '../src/utils';
 import { generateAssetObject, createPreloadTrials, } from '../src/experiment'
 
 test('test the camelize function', () => {
@@ -217,7 +217,6 @@ test('Creates the correct preload trials from all possible inputs', () => {
 
 const testDate = new Date()
 
-
 const agePossibilities = [
   {
     birthMonth: 8,
@@ -226,8 +225,6 @@ const agePossibilities = [
     ageMonths: null, 
     expectedBirthMonth: 8,
     expectedBirthYear: 2009,
-    expectedAge: testDate.getFullYear() - 2009,
-    expectedAgeMonths: 168
   },
   {
     birthMonth: 5,
@@ -236,8 +233,6 @@ const agePossibilities = [
     ageMonths: null, 
     expectedBirthMonth: 5,
     expectedBirthYear: 2000,
-    expectedAge: 23,
-    expectedAgeMonths: 279
   },
   {
     birthMonth: null,
@@ -246,18 +241,14 @@ const agePossibilities = [
     ageMonths: null,
     expectedBirthMonth: testDate.getMonth() + 1,
     expectedBirthYear: 2007,
-    expectedAge: testDate.getFullYear() - 2007,
-    expectedAgeMonths: (testDate.getFullYear() - 2007) * 12
   },
   {
     birthMonth: null,
     birthYear: null,
     age: null,
     ageMonths: 254,
-    expectedBirthMonth: 6,
+    expectedBirthMonth: 12 + (testDate.getMonth() + 1 - 254) % 12,
     expectedBirthYear: testDate.getFullYear() - Math.round(254 / 12),
-    expectedAge: Math.round(254 / 12),
-    expectedAgeMonths: 254
   },
   {
     birthMonth: null,
@@ -266,8 +257,6 @@ const agePossibilities = [
     ageMonths: null,
     expectedBirthMonth: testDate.getMonth() + 1,
     expectedBirthYear: testDate.getFullYear() - 12,
-    expectedAge: 12,
-    expectedAgeMonths: 12 * 12
   },
   {
     birthMonth: 9,
@@ -276,8 +265,6 @@ const agePossibilities = [
     ageMonths: null,
     expectedBirthMonth: null,
     expectedBirthYear: null,
-    expectedAge: null,
-    expectedAgeMonths: null
   },
   {
     birthMonth: null,
@@ -286,19 +273,44 @@ const agePossibilities = [
     ageMonths: null,
     expectedBirthMonth: null,
     expectedBirthYear: null,
-    expectedAge: null,
-    expectedAgeMonths: null
   },
 
 ]
 
 test('Sets the correct age fields for all possible inputs', () => {
   for (const poss of agePossibilities) {
+    console.table(poss);
     const ageData = getAgeData(poss.birthMonth, poss.birthYear, poss.age, poss.ageMonths)
+
+    let expectedAge = null, expectedAgeMonths = null;
+
+    if (poss.ageMonths || poss.age || poss.birthYear) {
+      expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
+      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12 + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+    }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth)
     expect(ageData.birthYear).toBe(poss.expectedBirthYear)
-    expect(ageData.age).toBe(poss.expectedAge)
-    expect(ageData.ageMonths).toBe(poss.expectedAgeMonths)
+    expect(ageData.age).toBe(expectedAge)
+    expect(ageData.ageMonths).toBe(expectedAgeMonths)
   }
 })
+
+test('Correctly parses grade', () => {
+  // Test with default gradeMin and gradeMax
+  expect(getGrade("K")).toBe(0)
+  expect(getGrade("4")).toBe(4)
+  expect(getGrade(5)).toBe(5)
+  expect(getGrade("20")).toBe(12)
+  expect(getGrade(20)).toBe(12)
+  expect(getGrade("-5")).toBe(0)
+  expect(getGrade(-5)).toBe(0)
+
+  expect(getGrade("K", 2, 8)).toBe(2)
+  expect(getGrade("4", 2, 8)).toBe(4)
+  expect(getGrade(5, 2, 8)).toBe(5)
+  expect(getGrade("20", 2, 8)).toBe(8)
+  expect(getGrade(20, 2, 8)).toBe(8)
+  expect(getGrade("-5", 2, 8)).toBe(2)
+  expect(getGrade(-5, 2, 8)).toBe(2)
+});
