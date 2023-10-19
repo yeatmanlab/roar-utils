@@ -176,7 +176,3 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
 
   return ageData;
 };
-
-
- 
-
