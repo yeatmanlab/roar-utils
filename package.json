@@ -1,6 +1,6 @@
 {
   "name": "@bdelab/roar-utils",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "A module containing utilities for ROAR such as helper functions and constants.",
   "main": "lib/index.js",
   "type": "module",
