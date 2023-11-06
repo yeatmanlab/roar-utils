@@ -1,6 +1,6 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-import { deviceType, primaryInput } from 'detect-it';
+import {deviceType, primaryInput} from 'detect-it';
 
 
 // converts a string to camel case
@@ -63,6 +63,27 @@ export function getDevice() {
     return 'mobile'
   }
   return 'desktop'
+}
+
+// Returns device-level information of user through the browser window object.
+export function getDeviceInfo() {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const language = window.navigator.language;
+  const userAgent = window.navigator.userAgent;
+  const userAgentData = window.navigator.userAgentData;
+
+  return {
+    screen: {width: width, height: height},
+    language: language,
+    userAgent: userAgent,
+    platform: userAgentData.platform,
+    mobile: userAgentData.mobile,
+    engine: userAgentData.brands[0].brand,
+    engineVersion: userAgentData.brands[0].version,
+    browser: userAgentData.brands[1].brand,
+    browserVersion: userAgentData.brands[1].version,
+  }
 }
 
 /**
