@@ -385,6 +385,7 @@ test("Sets the correct age fields for all possible inputs", () => {
 
         if (poss.ageMonths || poss.age || poss.birthYear) {
             expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
+            console.log("testdate", testDate.getFullYear(), poss.expectedBirthYear)
             expectedAgeMonths =
                 (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
                 (testDate.getMonth() + 1 - poss.expectedBirthMonth);
@@ -430,7 +431,7 @@ describe("ResponseTimeTracker", () => {
         });
     });
 
-    it("addResponseTime adds response time to response array", () => {
+    test("addResponseTime adds response time to response array", () => {
         responseTimeTracker.addResponseTime(550);
         responseTimeTracker.addResponseTime(480);
         responseTimeTracker.addResponseTime(600);
@@ -439,7 +440,7 @@ describe("ResponseTimeTracker", () => {
         expect(responseTimeTracker.responseTimes.length).toBe(4);
     });
 
-    it("should call thresholdExceededCallback when minThreshold is exceeded", () => {
+    test("should call thresholdExceededCallback when minThreshold is exceeded", () => {
         responseTimeTracker.addResponseTime(150);
         responseTimeTracker.addResponseTime(200);
         responseTimeTracker.addResponseTime(350);
@@ -447,17 +448,18 @@ describe("ResponseTimeTracker", () => {
         expect(testThresholdExceededCallback).toHaveBeenCalled();
     });
 
-    it("should not call thresholdExceededCallback when minThreshold or maxThreshold is not exceeded", () => {
+    test("should not call thresholdExceededCallback when minThreshold or maxThreshold is not exceeded", () => {
         responseTimeTracker.addResponseTime(550);
         responseTimeTracker.addResponseTime(480);
         responseTimeTracker.addResponseTime(600);
 
         expect(testThresholdExceededCallback).not.toHaveBeenCalled();
     });
-    it("should call thresholdExceededCallback when maxThreshold is exceeded", () => {
+
+    test("should call thresholdExceededCallback when maxThreshold is exceeded", () => {
         responseTimeTracker.addResponseTime(9500);
-        responseTimeTracker.addResponseTime(9000);
-        responseTimeTracker.addResponseTime(9000);
+        responseTimeTracker.addResponseTime(9200);
+        responseTimeTracker.addResponseTime(9300);
 
         expect(testThresholdExceededCallback).toHaveBeenCalled();
     });

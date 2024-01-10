@@ -226,6 +226,15 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 12) => {
   return grade;
 };
 
+/**
+ * Return grade after min/max filtering and accounting for string values.
+ *
+ * @const median
+ *
+ * @param {array} array - Array of response times.
+ *
+ * @returns {number} median of array of response times 
+ */
 const median = (array) => {
   array.sort((a, b) => b - a);
   const { length } = array;
@@ -235,6 +244,19 @@ const median = (array) => {
   return array[Math.floor(length / 2)];
 };
 
+/**
+ * Tracks response times and invokes callback function when response times  
+ * exceed specified thresholds.
+ *
+ * @class ResponseTimeTracker
+ * @param {number} minThreshold The minimum acceptable response time threshold.
+ * @param {number} maxThreshold The maximum acceptable response time threshold.
+ * @param {Function} method The method used to calculate a reduction of response times.
+ * @param {Function} thresholdExceededCallback Callback function to be triggered
+ *   when the response time exceeds the specified thresholds.
+ * @param {number} minResponsesRequired The minimum number of responses required before
+ *   checking for threshold exceedance.
+ */
 export class ResponseTimeTracker {
   constructor({
     minThreshold = 0,
