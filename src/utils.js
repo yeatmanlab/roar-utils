@@ -1,7 +1,6 @@
 import path from 'path-browserify';
 import mime from 'mime-types';
-import {deviceType, primaryInput} from 'detect-it';
-
+import { deviceType, primaryInput } from 'detect-it';
 
 // converts a string to camel case
 export function camelize(string) {
@@ -27,7 +26,7 @@ export function camelizeFiles(files) {
 Plays the correct audio based on user response. If user response does not matter, it will play a neutral feedback audio. Takes in 3 parameters:
 - responseIsCorrect (boolean || null): if the user's response was correct/incorrect OR null if it does matter, ex. true OR null
 - correct/neutral audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackAudio.mp3"
-- incorrect audio (string): path to the audio file 
+- incorrect audio (string): path to the audio file
 */
 
 /*
@@ -38,20 +37,20 @@ playFeedbackAudio(null, 'neutral.mp3',)
 */
 
 export function playFeedbackAudio(responseIsCorrect, audio1, audio2) {
-  let audioToPlay
+  let audioToPlay;
 
   if (responseIsCorrect || responseIsCorrect === null) {
-    audioToPlay = audio1
+    audioToPlay = audio1;
   } else {
-    audioToPlay = audio2
+    audioToPlay = audio2;
   }
 
-  new Audio(audioToPlay).play()
+  new Audio(audioToPlay).play();
 }
 
 // Gets the app language based on the lng query string. Using this because ROAR apps use i18next.
 export function getLanguage(setLanguage) {
-  if (setLanguage) return setLanguage
+  if (setLanguage) return setLanguage;
 
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('lng') || 'en';
@@ -60,30 +59,30 @@ export function getLanguage(setLanguage) {
 // Gets the device type based on the device inputs
 export function getDevice() {
   if (deviceType === 'touchOnly' || (deviceType === 'hybrid' && primaryInput === 'touch')) {
-    return 'mobile'
+    return 'mobile';
   }
-  return 'desktop'
+  return 'desktop';
 }
 
 // Returns device-level information of user through the browser window object.
 export function getDeviceInfo() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  const language = window.navigator.language;
-  const userAgent = window.navigator.userAgent;
-  const userAgentData = window.navigator.userAgentData;
+  const { language } = window.navigator;
+  const { userAgent } = window.navigator;
+  const { userAgentData } = window.navigator;
 
   return {
-    screen: {width: width, height: height},
-    language: language,
-    userAgent: userAgent,
+    screen: { width, height },
+    language,
+    userAgent,
     platform: userAgentData.platform,
     mobile: userAgentData.mobile,
     engine: userAgentData.brands[0].brand,
     engineVersion: userAgentData.brands[0].version,
     browser: userAgentData.brands[1].brand,
     browserVersion: userAgentData.brands[1].version,
-  }
+  };
 }
 
 /**
@@ -101,26 +100,25 @@ export function getDeviceInfo() {
 
 export function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
   if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
-      return `${bucketURI}/${lng}/${device}/${filePath}`;
-  } else if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
-      return `${bucketURI}/${lng}/shared/${filePath}`;
-  } else if (type === 'device') {
-      return `${bucketURI}/${device}/${filePath}`;
-  } else if (type === 'shared/device') {
-      return `${bucketURI}/shared/${device}/${filePath}`;
-  } else if (type === 'languageSpecific') {
-      return `${bucketURI}/${lng}/${filePath}`;
-  } else if (type === 'default') {
-      return `${bucketURI}/${filePath}`;
-  } else {
-      return `${bucketURI}/shared/${filePath}`;
+    return `${bucketURI}/${lng}/${device}/${filePath}`;
+  } if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
+    return `${bucketURI}/${lng}/shared/${filePath}`;
+  } if (type === 'device') {
+    return `${bucketURI}/${device}/${filePath}`;
+  } if (type === 'shared/device') {
+    return `${bucketURI}/shared/${device}/${filePath}`;
+  } if (type === 'languageSpecific') {
+    return `${bucketURI}/${lng}/${filePath}`;
+  } if (type === 'default') {
+    return `${bucketURI}/${filePath}`;
   }
+  return `${bucketURI}/shared/${filePath}`;
 }
 
 export function getAssetType(asset) {
   const mimeType = mime.lookup(asset);
   if (!mimeType) {
-      throw new Error(`Unrecognized file extension in path: ${asset}`);
+    throw new Error(`Unrecognized file extension in path: ${asset}`);
   }
   if (mimeType.startsWith('image/')) return 'images';
   if (mimeType.startsWith('audio/')) return 'audio';
@@ -130,14 +128,14 @@ export function getAssetType(asset) {
 
 /**
  * Calculates and returns age data based on the provided birth month, birth year, age, and age in months.
- * 
+ *
  * @function getAgeData
- * 
+ *
  * @param {string|number|null} birthMonth - The month of birth (1-12). If not provided, it will be calculated based on other parameters.
  * @param {string|number|null} birthYear - The year of birth. If not provided, it will be calculated based on other parameters.
  * @param {string|number|null} age - The age in years. If not provided, it will be calculated based on other parameters.
  * @param {string|number|null} ageMonths - The age in months. If not provided, it will be calculated based on other parameters.
- * 
+ *
  * @returns {Object} ageData - The calculated age data.
  * @returns {number|null} ageData.age - The calculated age in years.
  * @returns {number|null} ageData.ageMonths - The calculated age in months.
@@ -161,7 +159,7 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
 
   const ageData = {
     age: yearsOld,
-    ageMonths: ageM
+    ageMonths: ageM,
   };
 
   if (bm && by) {
@@ -200,32 +198,66 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
 
 /**
  * Return grade after min/max filtering and accounting for string values.
- * 
+ *
  * @function getGrade
- * 
+ *
  * @param {string|number|null} inputGrade - The input grade.
  * @param {number} gradeMin - The minimum grade. Default is 0 (for Kindergarten).
  * @param {number} gradeMax - The maximum grade. Default is 12.
- * 
+ *
  * @returns {number} numeric grade
  */
 export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 12) => {
-  const parsedGrade = Number(inputGrade)
+  const parsedGrade = Number(inputGrade);
   let grade;
 
-  if (isNaN(parsedGrade)) {
+  if (Number.isNaN(parsedGrade)) {
     // Assume grade is K, TK, or PK
-    grade = gradeMin
+    grade = gradeMin;
   } else if (parsedGrade < gradeMin) {
     grade = gradeMin;
   } else if (parsedGrade > gradeMax) {
     grade = gradeMax;
   } else {
     // grade is within range and is a number
-    grade = parsedGrade
+    grade = parsedGrade;
   }
 
   return grade;
 };
- 
 
+const median = (array) => {
+  array.sort((a, b) => b - a);
+  const { length } = array;
+  if (length % 2 === 0) {
+    return (array[length / 2] + array[(length / 2) - 1]) / 2;
+  }
+  return array[Math.floor(length / 2)];
+};
+
+export class ResponseTimeTracker {
+  constructor({
+    minThreshold = 0,
+    maxThreshold = Number.MAX_SAFE_INTEGER,
+    method = median,
+    thresholdExceededCallback = () => {},
+    minResponsesRequired = 0,
+  }) {
+    this.minThreshold = minThreshold;
+    this.maxThreshold = maxThreshold;
+    this.minResponsesRequired = minResponsesRequired;
+    this.method = method;
+    this.thresholdExceededCallback = thresholdExceededCallback;
+    this.responseTimes = [];
+  }
+
+  addResponseTime(responseTime) {
+    this.responseTimes.push(responseTime);
+    if (this.responseTimes.length >= this.minResponsesRequired) {
+      const reduction = this.method(this.responseTimes);
+      if (reduction > this.maxThreshold || reduction < this.minThreshold) {
+        this.thresholdExceededCallback();
+      }
+    }
+  }
+}
