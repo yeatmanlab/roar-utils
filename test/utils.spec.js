@@ -7,7 +7,7 @@ import {
   camelizeFiles,
   getAgeData,
   getGrade,
-  sampleValidityEvaluator,
+  CreateValidityEvaluator,
 } from '../src/utils';
 import { generateAssetObject, createPreloadTrials } from '../src/experiment';
 
@@ -309,8 +309,9 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
-        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths =
+        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
+        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
@@ -339,62 +340,14 @@ test('Correctly parses grade', () => {
   expect(getGrade(-5, 2, 8)).toBe(2);
 });
 
-const testEvaluator = jest.fn();
 const testAddFlags = jest.fn();
 
-describe('ValidityEval properly manipulates data and calls evaluator fx when threshold is breached', () => {
+describe('BaseValidityEvaluator properly adds flags', () => {
   let validityEval;
 
   beforeEach(() => {
     validityEval = new ValidityEvaluator({
-      evaluateValidity: testEvaluator,
-      addEngagementFlags: testAddFlags,
-      minResponsesRequired: 4,
-    });
-  });
-
-  test('Tests that addResponseData properly increments response arrays and evaluateValidity function is called when minResponses is breached', () => {
-    validityEval.addResponseData(550, 'right_arrow', 0);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-
-    expect(validityEval.responseTimes.length).toBe(4);
-    expect(validityEval.responses.length).toBe(4);
-    expect(validityEval.correct.length).toBe(4);
-    expect(testEvaluator).toHaveBeenCalled();
-  });
-
-  test('Tests that addResponseData properly increments response arrays and evaluateValidity function is not called when minResponses is not breached', () => {
-    validityEval.addResponseData(550, 'right_arrow', 0);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-
-    expect(validityEval.responseTimes.length).toBe(3);
-    expect(validityEval.responses.length).toBe(3);
-    expect(validityEval.correct.length).toBe(3);
-    expect(testEvaluator).not.toHaveBeenCalled();
-  });
-
-  test('Tests that resetResponseData properly clears response arrays', () => {
-    validityEval.addResponseData(550, 'right_arrow', 0);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.resetResponseData();
-
-    expect(validityEval.responseTimes.length).toBe(0);
-    expect(validityEval.responses.length).toBe(0);
-    expect(validityEval.correct.length).toBe(0);
-    expect(testEvaluator).not.toHaveBeenCalled();
-  });
-});
-
-describe('SampleValidityEvaluator properly adds flags', () => {
-  let validityEval;
-
-  beforeEach(() => {
-    validityEval = new ValidityEvaluator({
-      evaluateValidity: sampleValidityEvaluator,
+      evaluateValidity: new CreateValidityEvaluator({}),
       addEngagementFlags: testAddFlags,
       minResponsesRequired: 4,
     });
@@ -406,7 +359,10 @@ describe('SampleValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(250, 'right_arrow', 0);
     validityEval.addResponseData(250, 'left_arrow', 1);
     validityEval.addResponseData(250, 'left_arrow', 1);
-    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooFast'], true);
+    expect(validityEval._correct.length).toBe(6);
+    expect(validityEval._responses.length).toBe(6);
+    expect(validityEval._responseTimes.length).toBe(6);
+    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooFast'], false);
   });
   test('SampleEvaluator flags a run with too high of a median response time', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
@@ -415,7 +371,10 @@ describe('SampleValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(15000, 'right_arrow', 0);
     validityEval.addResponseData(13000, 'left_arrow', 1);
     validityEval.addResponseData(12000, 'left_arrow', 1);
-    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooSlow'], true);
+    expect(validityEval._correct.length).toBe(6);
+    expect(validityEval._responses.length).toBe(6);
+    expect(validityEval._responseTimes.length).toBe(6);
+    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooSlow'], false);
   });
   test('SampleEvaluator flags a run with too similar of responses', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
@@ -424,7 +383,10 @@ describe('SampleValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(900, 'right_arrow', 0);
     validityEval.addResponseData(1000, 'right_arrow', 1);
     validityEval.addResponseData(1200, 'left_arrow', 1);
-    expect(testAddFlags).toHaveBeenCalledWith(['responsesTooSimilar'], true);
+    expect(validityEval._correct.length).toBe(6);
+    expect(validityEval._responses.length).toBe(6);
+    expect(validityEval._responseTimes.length).toBe(6);
+    expect(testAddFlags).toHaveBeenCalledWith(['responsesTooSimilar'], false);
   });
   test('SampleEvaluator flags a run with too low of an accuracy', () => {
     validityEval.addResponseData(550, 'left_arrow', 0);
@@ -433,6 +395,73 @@ describe('SampleValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(900, 'right_arrow', 1);
     validityEval.addResponseData(1000, 'right_arrow', 0);
     validityEval.addResponseData(1200, 'left_arrow', 0);
-    expect(testAddFlags).toHaveBeenCalledWith(['accuracyTooLow'], true);
+    expect(validityEval._correct.length).toBe(6);
+    expect(validityEval._responses.length).toBe(6);
+    expect(validityEval._responseTimes.length).toBe(6);
+    expect(testAddFlags).toHaveBeenCalledWith(['accuracyTooLow'], false);
+  });
+  test('Tests that resetResponseData properly clears response arrays', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.startNewBlockValidation();
+
+    expect(validityEval._responseTimes.length).toBe(0);
+    expect(validityEval._responses.length).toBe(0);
+    expect(validityEval._correct.length).toBe(0);
+    expect(testAddFlags).not.toHaveBeenCalled();
+  });
+});
+
+describe('ValidityEvaluator tests with custom validation parameters', () => {
+  let validityEval;
+
+  beforeEach(() => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: new CreateValidityEvaluator({
+        RESPONSE_TIME_LOW_THRESHOLD: 500,
+        RESPONSE_TIME_HIGH_THRESHOLD: 800,
+        ignoredReliabilityFlags: ['responseTimeTooFast', 'responseTimeTooSlow'],
+      }),
+      addEngagementFlags: testAddFlags,
+      minResponsesRequired: 4,
+    });
+  });
+  test('SampleEvaluator does not flag a run with a satisfactory median response time', () => {
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'left_arrow', 1);
+    validityEval.addResponseData(530, 'right_arrow', 0);
+    validityEval.addResponseData(520, 'left_arrow', 1);
+    validityEval.addResponseData(510, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenCalledWith([], true);
+  });
+  test('SampleEvaluator flags a run that breaches the upper threshold median response time', () => {
+    validityEval.addResponseData(800, 'right_arrow', 0);
+    validityEval.addResponseData(920, 'left_arrow', 1);
+    validityEval.addResponseData(950, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooSlow'], true);
+  });
+  test('SampleEvaluator flags a run with too low of a median response time, but still returns the run as reliable as the responseTimeTooFast flag is blacklisted', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(450, 'left_arrow', 1);
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    validityEval.addResponseData(250, 'right_arrow', 0);
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenCalledWith(['responseTimeTooFast'], true);
+  });
+  test('SampleEvaluator flags a run with too low of a median response time and too similar of responses, and returns the run as unreliable responsesTooSimilar flag is not blacklisted', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(450, 'right_arrow', 1);
+    validityEval.addResponseData(250, 'right_arrow', 1);
+    validityEval.addResponseData(250, 'right_arrow', 0);
+    validityEval.addResponseData(250, 'right_arrow', 1);
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenCalledWith(
+      ['responseTimeTooFast', 'responsesTooSimilar'],
+      false,
+    );
   });
 });

@@ -93,7 +93,7 @@ export function generateAssetObject(json, bucketURI, language) {
       }
     };
 
-    const handleAssetsForAllTypes = (object, isDefault) => {
+    const handleAssetsForAllTypes = (object) => {
       Object.entries(object).forEach(([type, filePaths]) => {
         handleAssets(filePaths, type, true, isDefault);
       });
@@ -120,7 +120,7 @@ export function generateAssetObject(json, bucketURI, language) {
   };
 
   if (json.preload) {
-    Object.entries(json.preload).forEach(([group, groupObject]) => {
+    Object.entries(json.preload).forEach(([, groupObject]) => {
       handleGroupAssets(groupObject);
     });
   }
@@ -191,22 +191,6 @@ export function createPreloadTrials(jsonData, bucketURI, language) {
   const lng = getLanguage(language);
   const device = getDevice();
 
-  // Helper function to handle language specific assets.
-  function handleLanguageSpecificAssets(group, languageSpecificObject, isDefault) {
-    if (Array.isArray(languageSpecificObject)) {
-      handleAssets(languageSpecificObject, group, 'languageSpecific');
-    } else {
-      handleAssetsForAllTypes(group, languageSpecificObject, isDefault);
-    }
-  }
-
-  // Extracted the common logic to handle assets for all types into a separate function.
-  function handleAssetsForAllTypes(group, object, isDefault) {
-    Object.entries(object).forEach(([type, filePaths]) => {
-      handleAssets(filePaths, group, type, true, isDefault);
-    });
-  }
-
   function handleAssets(assets, group, type, nestedInLangSpecific = false, isDefault = false) {
     assets.forEach((filePath) => {
       const assetType = getAssetType(filePath);
@@ -241,6 +225,22 @@ export function createPreloadTrials(jsonData, bucketURI, language) {
       // Add formattedURL to the corresponding array in preloadTrials[group]
       preloadTrials[group][assetType].push(formattedURL);
     });
+  }
+
+  // Extracted the common logic to handle assets for all types into a separate function.
+  function handleAssetsForAllTypes(group, object, isDefault) {
+    Object.entries(object).forEach(([type, filePaths]) => {
+      handleAssets(filePaths, group, type, true, isDefault);
+    });
+  }
+
+  // Helper function to handle language specific assets.
+  function handleLanguageSpecificAssets(group, languageSpecificObject, isDefault) {
+    if (Array.isArray(languageSpecificObject)) {
+      handleAssets(languageSpecificObject, group, 'languageSpecific');
+    } else {
+      handleAssetsForAllTypes(group, languageSpecificObject, isDefault);
+    }
   }
 
   // Helper function to handle shared assets.

@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import path from 'path-browserify';
 import mime from 'mime-types';
 import { deviceType, primaryInput } from 'detect-it';
@@ -265,34 +266,65 @@ export const median = (array) => {
   return array[Math.floor(length / 2)];
 };
 
-export function sampleValidityEvaluator(responseTimes, responses, correct) {
-  const flags = [];
-  const RESPONSE_TIME_LOW_THRESHOLD = 400;
-  const RESPONSE_TIME_HIGH_THRESHOLD = 10000;
-  const RESPONSE_SIMILARITY_THRESHOLD = 0.8;
-  const ACCURACY_THRESHOLD = 0.2;
-  // verifies if responseTimes lie above or below a threshold -- for now, the threshold is hardcoded
-  if (median(responseTimes) <= RESPONSE_TIME_LOW_THRESHOLD) {
-    flags.push('responseTimeTooFast');
-  }
-  if (median(responseTimes) >= RESPONSE_TIME_HIGH_THRESHOLD) {
-    flags.push('responseTimeTooSlow');
-  }
-  // Calculates the response with the highest frequency and return the frequency
-  const maxIdenticalResponse = Math.max(
-    ...Object.values(responses.reduce((acc, val) => ((acc[val] = (acc[val] || 0) + 1), acc), {})),
-  );
-  const similarity = maxIdenticalResponse / responses.length;
-  // Calculate response similarity based on maxIdenticalResponse
-  if (similarity >= RESPONSE_SIMILARITY_THRESHOLD) {
-    flags.push('responsesTooSimilar');
-  }
-  // Calculate accuracy based on the number of correct responses
-  const numCorrect = correct?.filter((x) => x === 1).length ?? 0;
-  if (numCorrect / correct.length <= ACCURACY_THRESHOLD) {
-    flags.push('accuracyTooLow');
-  }
-  return flags;
+/**
+ * Returns a function that evaluates the reliability of a run based on the following criteria:
+ *
+ * @param {number} RESPONSE_TIME_LOW_THRESHOLD - The minimum acceptable response time threshold.
+ * @param {number} RESPONSE_TIME_HIGH_THRESHOLD - The maximum acceptable response time threshold.
+ * @param {number} RESPONSE_SIMILARITY_THRESHOLD - The maximum acceptable response similarity threshold.
+ * @param {number} ACCURACY_THRESHOLD - The minimum acceptable accuracy threshold.
+ * @param {array} ignoredReliabilityFlags - An array of flags that should be ignored when evaluating reliability.
+ * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
+ */
+export function CreateValidityEvaluator({
+  RESPONSE_TIME_LOW_THRESHOLD = 400,
+  RESPONSE_TIME_HIGH_THRESHOLD = 10000,
+  RESPONSE_SIMILARITY_THRESHOLD = 0.8,
+  ACCURACY_THRESHOLD = 0.2,
+  ignoredReliabilityFlags = [],
+}) {
+  return function baseValidityEvaluator({ responseTimes, responses, correct }) {
+    const flags = [];
+
+    // verifies if responseTimes lie above or below a threshold
+    if (median(responseTimes) <= RESPONSE_TIME_LOW_THRESHOLD) {
+      flags.push('responseTimeTooFast');
+    }
+
+    if (median(responseTimes) >= RESPONSE_TIME_HIGH_THRESHOLD) {
+      flags.push('responseTimeTooSlow');
+    }
+
+    // Calculates the response with the highest frequency and return the frequency
+    const maxIdenticalResponse = Math.max(
+      ...Object.values(
+        responses.reduce((acc, val) => {
+          if (!acc[val]) {
+            acc[val] = 0;
+          }
+          acc[val] += 1;
+          return acc;
+        }, {}),
+      ),
+    );
+
+    const similarity = maxIdenticalResponse / responses.length;
+
+    // Calculate response similarity based on maxIdenticalResponse
+    if (similarity >= RESPONSE_SIMILARITY_THRESHOLD) {
+      flags.push('responsesTooSimilar');
+    }
+
+    // Calculate accuracy based on the number of correct responses
+    const numCorrect = correct?.filter((x) => x === 1).length ?? 0;
+    if (numCorrect / correct.length <= ACCURACY_THRESHOLD) {
+      flags.push('accuracyTooLow');
+    }
+
+    const isReliable = flags.filter((x) => !ignoredReliabilityFlags.includes(x)).length === 0;
+
+    return { flags, isReliable };
+  };
 }
 
 /**
@@ -300,16 +332,17 @@ export function sampleValidityEvaluator(responseTimes, responses, correct) {
  * exceed specified thresholds.
  *
  * @class ResponseTimeTracker
- * @param {number} minThreshold The minimum acceptable response time threshold.
- * @param {number} maxThreshold The maximum acceptable response time threshold.
  * @param {Function} evaluateValidity function to be called to generate an decision on the
  *    reliability of a run
  * @param {Function} addEngagementFlags function passed through to update the run's
  *  firekit object with flags tripped
  * @param {number} minResponsesRequired The minimum number of responses required before
  *   checking for threshold exceedance.
+ * @property {Array<number>} _responseTimes An array to store the response times.
+ * @property {Array<number>} _responses An array to store the responses 
+ * (keypresses or button choices).
+ * @property {Array<number>} _correct An array to store the correctness of the responses.
  */
-
 export class ValidityEvaluator {
   constructor({
     evaluateValidity = () => {},
@@ -319,28 +352,21 @@ export class ValidityEvaluator {
     this.evaluateValidity = evaluateValidity;
     this.addEngagementFlags = addEngagementFlags;
     this.minResponsesRequired = minResponsesRequired;
-    /**
-     * An array that stores response times.
-     * @type {Array<number>}
-     */
-    this.responseTimes = [];
-    /**
-     * An array that stores the response keypresses or button choices.
-     * @type {Array<number>}
-     */
-    this.responses = [];
-    /**
-     * An array that stores the accuracy of the selections.
-     * @type {Array<number>}
-     */
-    this.correct = [];
+    this._responseTimes = [];
+    this._responses = [];
+    this._correct = [];
   }
 
-  // Called to clear a run's data arrays
-  resetResponseData() {
-    this.responseTimes = [];
-    this.responses = [];
-    this.correct = [];
+  /**
+   *  @function startNewBlockValidation Called when a new block is started to reset the
+   * data arrays and update the evaluateValidity function if needed
+   * @param {Function} evaluateValidity
+   */
+  startNewBlockValidation(evaluateValidity = this.evaluateValidity) {
+    this.evaluateValidity = evaluateValidity;
+    this._responseTimes = [];
+    this._responses = [];
+    this._correct = [];
   }
 
   /**
@@ -350,21 +376,25 @@ export class ValidityEvaluator {
    * @param {number} responseTime Time it took for a user to respond to a stimulus
    * @param {string} response  Choice that a user responded with
    * ex: left_arrow, right_arrow, button_3
-   * @param {number} isCorrect True if a user answered correctly, false if answered incorrectly
+   * @param {number} isCorrect 1 if a user answered correctly, 0if answered incorrectly
    */
   addResponseData(responseTime, response, isCorrect) {
-    this.responseTimes.push(responseTime);
-    this.responses.push(response);
-    this.correct.push(isCorrect);
+    // TODO: make response data arrays private
+    this._responseTimes.push(responseTime);
+    this._responses.push(response);
+    this._correct.push(isCorrect);
 
-    // All arrays should be the same length, but for sanity, check the length of all arrays
-    if (
-      this.responseTimes.length >= this.minResponsesRequired
-      && this.responses.length >= this.minResponsesRequired
-      && this.correct.length >= this.minResponsesRequired
-    ) {
-      const flags = this.evaluateValidity(this.responseTimes, this.responses, this.correct);
+    if (this._responseTimes.length >= this.minResponsesRequired) {
+      const { flags, isReliable } = this.evaluateValidity({
+        responseTimes: this._responseTimes,
+        responses: this._responses,
+        correct: this._correct,
+      });
+
       if (flags?.length > 0) {
+        this.addEngagementFlags(flags, isReliable);
+      } else {
+        // If responseData has exceeded the threshold, mark the run as reliable
         this.addEngagementFlags(flags, true);
       }
     }
