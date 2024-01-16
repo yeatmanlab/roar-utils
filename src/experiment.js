@@ -1,8 +1,6 @@
 import jsPsychPreload from '@jspsych/plugin-preload';
 import path from 'path-browserify';
-import {
-  getAssetType, getDevice, getFormattedURL, getLanguage, camelize,
-} from './utils';
+import { getAssetType, getDevice, getFormattedURL, getLanguage, camelize } from './utils';
 
 /**
  * Generates an asset object from a given JSON object, bucket URI and language.
@@ -75,29 +73,29 @@ export function generateAssetObject(json, bucketURI, language) {
     });
   };
 
+  const handleSharedAssets = (sharedObject) => {
+    if (Array.isArray(sharedObject)) {
+      handleAssets(sharedObject, 'shared');
+    } else {
+      Object.entries(sharedObject).forEach(([type, filePaths]) => {
+        const assetType = type === 'device' ? 'shared/device' : 'shared';
+        handleAssets(filePaths, assetType);
+      });
+    }
+  };
+
+  const handleAssetsForAllTypes = (object, isDefault) => {
+    Object.entries(object).forEach(([type, filePaths]) => {
+      handleAssets(filePaths, type, true, isDefault);
+    });
+  };
+
   const handleGroupAssets = (groupObject, isDefault = false) => {
     // Handles the case where groupObject is an array.
     if (Array.isArray(groupObject)) {
       handleAssets(groupObject, 'default');
       return;
     }
-
-    const handleSharedAssets = (sharedObject) => {
-      if (Array.isArray(sharedObject)) {
-        handleAssets(sharedObject, 'shared');
-      } else {
-        Object.entries(sharedObject).forEach(([type, filePaths]) => {
-          const assetType = type === 'device' ? 'shared/device' : 'shared';
-          handleAssets(filePaths, assetType);
-        });
-      }
-    };
-
-    const handleAssetsForAllTypes = (object) => {
-      Object.entries(object).forEach(([type, filePaths]) => {
-        handleAssets(filePaths, type, true, isDefault);
-      });
-    };
 
     // Handles the case where groupObject is language-specific.
     if (groupObject.languageSpecific) {
