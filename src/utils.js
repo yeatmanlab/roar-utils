@@ -23,8 +23,11 @@ export function camelizeFiles(files) {
 }
 
 /*
-Plays the correct audio based on user response. If user response does not matter, it will play a neutral feedback audio. Takes in 3 parameters:
-- responseIsCorrect (boolean || null): if the user's response was correct/incorrect OR null if it does matter, ex. true OR null
+Plays the correct audio based on user response.
+If user response does not matter, it will play a neutral feedback audio.
+Takes in 3 parameters:
+- responseIsCorrect (boolean || null): if the user's response was correct/incorrect
+OR null if it does matter, ex. true OR null
 - correct/neutral audio (string): path to the audio file, ex. "http://localhost:8080/audio/feedbackAudio.mp3"
 - incorrect audio (string): path to the audio file
 */
@@ -86,30 +89,40 @@ export function getDeviceInfo() {
 }
 
 /**
- * Returns the formatted URL based on different conditions for asset type, nesting and default values.
+ * Returns the formatted URL based on different conditions for asset type,
+ * nesting and default values.
  *
- * @param {string} bucketURI - The bucket URI where the assets are stored. Ex. 'https://storage.googleapis.com/${bucketName}
+ * @param {string} bucketURI - The bucket URI where the assets are stored.
+ * Ex. 'https://storage.googleapis.com/${bucketName}
  * @param {string} filePath - The file path of the asset.
  * @param {string} lng - The language identifier as a ISO 639-1 code. Ex. 'en' for English
  * @param {string} device - The device identifier.
- * @param {string} type - The type of asset category. Can be one of the following: 'device', 'shared', 'shared/device', 'languageSpecific', 'default'.
- * @param {boolean} nested - Indicates if the asset is nested in language specific data. Default is false.
+ * @param {string} type - The type of asset category. Can be one of the following:
+ * 'device', 'shared', 'shared/device', 'languageSpecific', 'default'.
+ * @param {boolean} nested - Indicates if the asset is nested in language specific data.
+ *  Default is false.
  * @param {boolean} isDefault - Indicates if the asset is from default data. Default is false.
- * @returns {string} The formatted URL based on the given conditions. Ex. 'https://storage.googleapis.com/${bucketName}/${lng}/${device}/${file}'
+ * @returns {string} The formatted URL based on the given conditions.
+ * Ex. 'https://storage.googleapis.com/${bucketName}/${lng}/${device}/${file}'
  */
 
 export function getFormattedURL(bucketURI, filePath, lng, device, type, nested, isDefault) {
   if ((isDefault && nested && type === 'device') || (nested && type === 'device')) {
     return `${bucketURI}/${lng}/${device}/${filePath}`;
-  } if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
+  }
+  if ((isDefault && nested && type === 'shared') || (nested && type === 'shared')) {
     return `${bucketURI}/${lng}/shared/${filePath}`;
-  } if (type === 'device') {
+  }
+  if (type === 'device') {
     return `${bucketURI}/${device}/${filePath}`;
-  } if (type === 'shared/device') {
+  }
+  if (type === 'shared/device') {
     return `${bucketURI}/shared/${device}/${filePath}`;
-  } if (type === 'languageSpecific') {
+  }
+  if (type === 'languageSpecific') {
     return `${bucketURI}/${lng}/${filePath}`;
-  } if (type === 'default') {
+  }
+  if (type === 'default') {
     return `${bucketURI}/${filePath}`;
   }
   return `${bucketURI}/shared/${filePath}`;
@@ -123,18 +136,25 @@ export function getAssetType(asset) {
   if (mimeType.startsWith('image/')) return 'images';
   if (mimeType.startsWith('audio/')) return 'audio';
   if (mimeType.startsWith('video/')) return 'video';
-  throw new Error(`Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`);
+  throw new Error(
+    `Unsupported MIME type for file: ${asset}. Only image, audio, and video files are supported.`,
+  );
 }
 
 /**
- * Calculates and returns age data based on the provided birth month, birth year, age, and age in months.
+ * Calculates and returns age data based on the provided birth month, birth year,
+ * age, and age in months.
  *
  * @function getAgeData
  *
- * @param {string|number|null} birthMonth - The month of birth (1-12). If not provided, it will be calculated based on other parameters.
- * @param {string|number|null} birthYear - The year of birth. If not provided, it will be calculated based on other parameters.
- * @param {string|number|null} age - The age in years. If not provided, it will be calculated based on other parameters.
- * @param {string|number|null} ageMonths - The age in months. If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} birthMonth - The month of birth (1-12).
+ * If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} birthYear - The year of birth.
+ * If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} age - The age in years.
+ * If not provided, it will be calculated based on other parameters.
+ * @param {string|number|null} ageMonths - The age in months.
+ * If not provided, it will be calculated based on other parameters.
  *
  * @returns {Object} ageData - The calculated age data.
  * @returns {number|null} ageData.age - The calculated age in years.
@@ -144,12 +164,13 @@ export function getAssetType(asset) {
  */
 
 export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
-  const msPerYear = 1000 * 60 * 60 * 24 * 365.25; // milliseconds per year (accounting for leap years)
+  // milliseconds per year (accounting for leap years)
+  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
   const currDate = new Date();
 
   const safeNumber = (value) => {
     const numValue = Number(value);
-    return (Object.is(numValue, NaN) || numValue === 0) ? null : numValue;
+    return Object.is(numValue, NaN) || numValue === 0 ? null : numValue;
   };
 
   const bm = safeNumber(birthMonth);
@@ -233,52 +254,118 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 12) => {
  *
  * @param {array} array - Array of response times.
  *
- * @returns {number} median of array of response times 
+ * @returns {number} median of array of response times
  */
-const median = (array) => {
+export const median = (array) => {
   array.sort((a, b) => b - a);
   const { length } = array;
   if (length % 2 === 0) {
-    return (array[length / 2] + array[(length / 2) - 1]) / 2;
+    return (array[length / 2] + array[length / 2 - 1]) / 2;
   }
   return array[Math.floor(length / 2)];
 };
 
+export function sampleValidityEvaluator(responseTimes, responses, correct) {
+  const flags = [];
+  const RESPONSE_TIME_LOW_THRESHOLD = 400;
+  const RESPONSE_TIME_HIGH_THRESHOLD = 10000;
+  const RESPONSE_SIMILARITY_THRESHOLD = 0.8;
+  const ACCURACY_THRESHOLD = 0.2;
+  // verifies if responseTimes lie above or below a threshold -- for now, the threshold is hardcoded
+  if (median(responseTimes) <= RESPONSE_TIME_LOW_THRESHOLD) {
+    flags.push('responseTimeTooFast');
+  }
+  if (median(responseTimes) >= RESPONSE_TIME_HIGH_THRESHOLD) {
+    flags.push('responseTimeTooSlow');
+  }
+  // Calculates the response with the highest frequency and return the frequency
+  const maxIdenticalResponse = Math.max(
+    ...Object.values(responses.reduce((acc, val) => ((acc[val] = (acc[val] || 0) + 1), acc), {})),
+  );
+  const similarity = maxIdenticalResponse / responses.length;
+  // Calculate response similarity based on maxIdenticalResponse
+  if (similarity >= RESPONSE_SIMILARITY_THRESHOLD) {
+    flags.push('responsesTooSimilar');
+  }
+  // Calculate accuracy based on the number of correct responses
+  const numCorrect = correct?.filter((x) => x === 1).length ?? 0;
+  if (numCorrect / correct.length <= ACCURACY_THRESHOLD) {
+    flags.push('accuracyTooLow');
+  }
+  return flags;
+}
+
 /**
- * Tracks response times and invokes callback function when response times  
+ * Tracks response times and invokes callback function when response times
  * exceed specified thresholds.
  *
  * @class ResponseTimeTracker
  * @param {number} minThreshold The minimum acceptable response time threshold.
  * @param {number} maxThreshold The maximum acceptable response time threshold.
- * @param {Function} method The method used to calculate a reduction of response times.
- * @param {Function} thresholdExceededCallback Callback function to be triggered
- *   when the response time exceeds the specified thresholds.
+ * @param {Function} evaluateValidity function to be called to generate an decision on the
+ *    reliability of a run
+ * @param {Function} addEngagementFlags function passed through to update the run's
+ *  firekit object with flags tripped
  * @param {number} minResponsesRequired The minimum number of responses required before
  *   checking for threshold exceedance.
  */
-export class ResponseTimeTracker {
+
+export class ValidityEvaluator {
   constructor({
-    minThreshold = 0,
-    maxThreshold = Number.MAX_SAFE_INTEGER,
-    method = median,
-    thresholdExceededCallback = () => {},
+    evaluateValidity = () => {},
+    addEngagementFlags = () => {},
     minResponsesRequired = 0,
   }) {
-    this.minThreshold = minThreshold;
-    this.maxThreshold = maxThreshold;
+    this.evaluateValidity = evaluateValidity;
+    this.addEngagementFlags = addEngagementFlags;
     this.minResponsesRequired = minResponsesRequired;
-    this.method = method;
-    this.thresholdExceededCallback = thresholdExceededCallback;
+    /**
+     * An array that stores response times.
+     * @type {Array<number>}
+     */
     this.responseTimes = [];
+    /**
+     * An array that stores the response keypresses or button choices.
+     * @type {Array<number>}
+     */
+    this.responses = [];
+    /**
+     * An array that stores the accuracy of the selections.
+     * @type {Array<number>}
+     */
+    this.correct = [];
   }
 
-  addResponseTime(responseTime) {
+  // Called to clear a run's data arrays
+  resetResponseData() {
+    this.responseTimes = [];
+    this.responses = [];
+    this.correct = [];
+  }
+
+  /**
+   * Updates ValidityEvaluator arrays (responseTimes, response, and accuracy) with
+   *
+   * @function addResponseData
+   * @param {number} responseTime Time it took for a user to respond to a stimulus
+   * @param {string} response  Choice that a user responded with
+   * ex: left_arrow, right_arrow, button_3
+   * @param {number} isCorrect True if a user answered correctly, false if answered incorrectly
+   */
+  addResponseData(responseTime, response, isCorrect) {
     this.responseTimes.push(responseTime);
-    if (this.responseTimes.length >= this.minResponsesRequired) {
-      const reduction = this.method(this.responseTimes);
-      if (reduction > this.maxThreshold || reduction < this.minThreshold) {
-        this.thresholdExceededCallback();
+    this.responses.push(response);
+    this.correct.push(isCorrect);
+
+    // All arrays should be the same length, but for sanity, check the length of all arrays
+    if (
+      this.responseTimes.length >= this.minResponsesRequired
+      && this.responses.length >= this.minResponsesRequired
+      && this.correct.length >= this.minResponsesRequired
+    ) {
+      const flags = this.evaluateValidity(this.responseTimes, this.responses, this.correct);
+      if (flags?.length > 0) {
+        this.addEngagementFlags(flags, true);
       }
     }
   }
