@@ -302,8 +302,6 @@ test('Sets the correct age fields for all possible inputs', () => {
     let expectedAgeMonths = null;
 
     if (poss.ageMonths || poss.age || poss.birthYear) {
-      console.table(poss);
-      console.log(testDate.getFullYear());
       if (!poss.birthMonth && poss.ageMonths) {
         expectedAge = Math.floor(poss.ageMonths / 12);
       } else if (testDate.getMonth() + 1 < poss.expectedBirthMonth) {
@@ -311,11 +309,9 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      console.log(testDate.getMonth());
       expectedAgeMonths =
         (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
         (testDate.getMonth() + 1 - poss.expectedBirthMonth);
-      console.log(expectedAgeMonths);
     }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
