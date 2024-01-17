@@ -276,14 +276,14 @@ export const median = (array) => {
  * @param {array} ignoredReliabilityFlags - An array of flags that should be ignored when evaluating reliability.
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
-export function CreateValidityEvaluator({
+export function CreateEvaluateValidity({
   RESPONSE_TIME_LOW_THRESHOLD = 400,
   RESPONSE_TIME_HIGH_THRESHOLD = 10000,
   RESPONSE_SIMILARITY_THRESHOLD = 0.8,
   ACCURACY_THRESHOLD = 0.2,
   ignoredReliabilityFlags = [],
 }) {
-  return function baseValidityEvaluator({ responseTimes, responses, correct }) {
+  return function baseEvaluateValidity ({ responseTimes, responses, correct }) {
     const flags = [];
 
     // verifies if responseTimes lie above or below a threshold

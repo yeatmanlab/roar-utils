@@ -7,7 +7,7 @@ import {
   camelizeFiles,
   getAgeData,
   getGrade,
-  CreateValidityEvaluator,
+  CreateEvaluateValidity,
 } from '../src/utils';
 import { generateAssetObject, createPreloadTrials } from '../src/experiment';
 
@@ -347,7 +347,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
 
   beforeEach(() => {
     validityEval = new ValidityEvaluator({
-      evaluateValidity: new CreateValidityEvaluator({}),
+      evaluateValidity: new CreateEvaluateValidity({}),
       addEngagementFlags: testAddFlags,
       minResponsesRequired: 4,
     });
@@ -418,7 +418,7 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
 
   beforeEach(() => {
     validityEval = new ValidityEvaluator({
-      evaluateValidity: new CreateValidityEvaluator({
+      evaluateValidity: new CreateEvaluateValidity({
         RESPONSE_TIME_LOW_THRESHOLD: 500,
         RESPONSE_TIME_HIGH_THRESHOLD: 800,
         ignoredReliabilityFlags: ['responseTimeTooFast', 'responseTimeTooSlow'],
