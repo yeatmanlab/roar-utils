@@ -281,7 +281,7 @@ export function CreateEvaluateValidity({
   RESPONSE_TIME_HIGH_THRESHOLD = 10000,
   RESPONSE_SIMILARITY_THRESHOLD = 0.8,
   ACCURACY_THRESHOLD = 0.2,
-  ignoredReliabilityFlags = [],
+  ignoredReliabilityFlags = ['responseTimeTooSlow', 'responsesTooSimilar', 'accuracyTooLow'],
 }) {
   return function baseEvaluateValidity ({ responseTimes, responses, correct }) {
     const flags = [];
