@@ -295,9 +295,11 @@ export function CreateEvaluateValidity({
       flags.push('responseTimeTooSlow');
     }
 
-    const isSimilar = responses.length >= RESPONSE_SIMILARITY_THRESHOLD && responses
-      .slice(responses.length - RESPONSE_SIMILARITY_THRESHOLD)
-      .every((val, i, arr) => val === arr[0]);
+    const isSimilar =
+      responses.length >= RESPONSE_SIMILARITY_THRESHOLD &&
+      responses
+        .slice(responses.length - RESPONSE_SIMILARITY_THRESHOLD)
+        .every((val, i, arr) => val === arr[0]);
     // Calculate response similarity based on maxIdenticalResponse
     if (isSimilar) {
       flags.push('responsesTooSimilar');
@@ -367,7 +369,6 @@ export class ValidityEvaluator {
    * @param {number} isCorrect 1 if a user answered correctly, 0if answered incorrectly
    */
   addResponseData(responseTime, response, isCorrect) {
-    // TODO: make response data arrays private
     this._responseTimes.push(responseTime);
     this._responses.push(response);
     this._correct.push(isCorrect);
@@ -379,12 +380,7 @@ export class ValidityEvaluator {
         correct: this._correct,
       });
 
-      if (flags?.length > 0) {
-        this.addEngagementFlags(flags, isReliable);
-      } else {
-        // If responseData has exceeded the threshold, mark the run as reliable
-        this.addEngagementFlags(flags, true);
-      }
+      this.addEngagementFlags(flags, isReliable);
     }
   }
 }
