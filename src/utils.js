@@ -269,9 +269,9 @@ export const median = (array) => {
 /**
  * Returns a function that evaluates the reliability of a run based on the following criteria:
  *
- * @param {number} RESPONSE_TIME_LOW_THRESHOLD - The minimum acceptable response time threshold.
- * @param {number} RESPONSE_TIME_HIGH_THRESHOLD - The maximum acceptable response time threshold.
- * @param {number} RESPONSE_SIMILARITY_THRESHOLD - The maximum acceptable response similarity threshold.
+ * @param {number} RESPONSE_TIME_LOW_THRESHOLD - The minimum acceptable response time threshold in MS.
+ * @param {number} RESPONSE_TIME_HIGH_THRESHOLD - The maximum acceptable response time threshold in MS.
+ * @param {number} RESPONSE_SIMILARITY_THRESHOLD - The maximum acceptable response threshold as a number of identical responses
  * @param {number} ACCURACY_THRESHOLD - The minimum acceptable accuracy threshold.
  * @param {array} ignoredReliabilityFlags - An array of flags that should be ignored when evaluating reliability.
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
@@ -279,11 +279,11 @@ export const median = (array) => {
 export function CreateEvaluateValidity({
   RESPONSE_TIME_LOW_THRESHOLD = 400,
   RESPONSE_TIME_HIGH_THRESHOLD = 10000,
-  RESPONSE_SIMILARITY_THRESHOLD = 0.8,
+  RESPONSE_SIMILARITY_THRESHOLD = 5,
   ACCURACY_THRESHOLD = 0.2,
   ignoredReliabilityFlags = ['responseTimeTooSlow', 'responsesTooSimilar', 'accuracyTooLow'],
 }) {
-  return function baseEvaluateValidity ({ responseTimes, responses, correct }) {
+  return function baseEvaluateValidity({ responseTimes, responses, correct }) {
     const flags = [];
 
     // verifies if responseTimes lie above or below a threshold
@@ -295,23 +295,11 @@ export function CreateEvaluateValidity({
       flags.push('responseTimeTooSlow');
     }
 
-    // Calculates the response with the highest frequency and return the frequency
-    const maxIdenticalResponse = Math.max(
-      ...Object.values(
-        responses.reduce((acc, val) => {
-          if (!acc[val]) {
-            acc[val] = 0;
-          }
-          acc[val] += 1;
-          return acc;
-        }, {}),
-      ),
-    );
-
-    const similarity = maxIdenticalResponse / responses.length;
-
+    const isSimilar = responses.length >= RESPONSE_SIMILARITY_THRESHOLD && responses
+      .slice(responses.length - RESPONSE_SIMILARITY_THRESHOLD)
+      .every((val, i, arr) => val === arr[0]);
     // Calculate response similarity based on maxIdenticalResponse
-    if (similarity >= RESPONSE_SIMILARITY_THRESHOLD) {
+    if (isSimilar) {
       flags.push('responsesTooSimilar');
     }
 
@@ -339,7 +327,7 @@ export function CreateEvaluateValidity({
  * @param {number} minResponsesRequired The minimum number of responses required before
  *   checking for threshold exceedance.
  * @property {Array<number>} _responseTimes An array to store the response times.
- * @property {Array<number>} _responses An array to store the responses 
+ * @property {Array<number>} _responses An array to store the responses
  * (keypresses or button choices).
  * @property {Array<number>} _correct An array to store the correctness of the responses.
  */

@@ -382,11 +382,23 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(650, 'right_arrow', 1);
     validityEval.addResponseData(900, 'right_arrow', 0);
     validityEval.addResponseData(1000, 'right_arrow', 1);
-    validityEval.addResponseData(1200, 'left_arrow', 1);
+    validityEval.addResponseData(1200, 'right_arrow', 1);
     expect(validityEval._correct.length).toBe(6);
     expect(validityEval._responses.length).toBe(6);
     expect(validityEval._responseTimes.length).toBe(6);
     expect(testAddFlags).toHaveBeenCalledWith(['responsesTooSimilar'], true);
+  });
+  test('SampleEvaluator does not flag a run with similar responses but not too similar of responses', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(1050, 'right_arrow', 1);
+    validityEval.addResponseData(650, 'right_arrow', 1);
+    validityEval.addResponseData(900, 'right_arrow', 0);
+    validityEval.addResponseData(1000, 'left_arrow', 1);
+    validityEval.addResponseData(1200, 'right_arrow', 1);
+    expect(validityEval._correct.length).toBe(6);
+    expect(validityEval._responses.length).toBe(6);
+    expect(validityEval._responseTimes.length).toBe(6);
+    expect(testAddFlags).toHaveBeenCalledWith([], true);
   });
   test('SampleEvaluator flags a run with too low of an accuracy', () => {
     validityEval.addResponseData(550, 'left_arrow', 0);
