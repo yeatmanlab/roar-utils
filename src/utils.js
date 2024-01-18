@@ -269,50 +269,49 @@ export const median = (array) => {
 /**
  * Returns a function that evaluates the reliability of a run based on the following criteria:
  *
- * @param {number} RESPONSE_TIME_LOW_THRESHOLD - The minimum acceptable response time threshold in MS.
- * @param {number} RESPONSE_TIME_HIGH_THRESHOLD - The maximum acceptable response time threshold in MS.
- * @param {number} RESPONSE_SIMILARITY_THRESHOLD - The maximum acceptable response threshold as a number of identical responses
- * @param {number} ACCURACY_THRESHOLD - The minimum acceptable accuracy threshold.
+ * @param {number} responseTimeLowThreshold - The minimum acceptable response time threshold in MS.
+ * @param {number} responseTimeHighThreshold - The maximum acceptable response time threshold in MS.
+ * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} ignoredReliabilityFlags - An array of flags that should be ignored when evaluating reliability.
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
-export function CreateEvaluateValidity({
-  RESPONSE_TIME_LOW_THRESHOLD = 400,
-  RESPONSE_TIME_HIGH_THRESHOLD = 10000,
-  RESPONSE_SIMILARITY_THRESHOLD = 5,
-  ACCURACY_THRESHOLD = 0.2,
-  ignoredReliabilityFlags = ['responseTimeTooSlow', 'responsesTooSimilar', 'accuracyTooLow'],
+export function createEvaluateValidity({
+  responseTimeLowThreshold = 400,
+  responseTimeHighThreshold = 10000,
+  accuracyThreshold = 0.2,
+  minResponsesRequired = 0,
+  ignoredReliabilityFlags = [
+    'responseTimeTooSlow',
+    'accuracyTooLow',
+    'notEnoughResponses',
+  ],
 }) {
   return function baseEvaluateValidity({ responseTimes, responses, correct }) {
     const flags = [];
+    let isReliable = false;
 
-    // verifies if responseTimes lie above or below a threshold
-    if (median(responseTimes) <= RESPONSE_TIME_LOW_THRESHOLD) {
-      flags.push('responseTimeTooFast');
+    if (responseTimes.length < minResponsesRequired) {
+      flags.push('notEnoughResponses');
+    } else {
+      // verifies if responseTimes lie above or below a threshold
+      if (median(responseTimes) <= responseTimeLowThreshold) {
+        flags.push('responseTimeTooFast');
+      }
+
+      if (median(responseTimes) >= responseTimeHighThreshold) {
+        flags.push('responseTimeTooSlow');
+      }
+
+      // TODO: Calculate response similarity based on maxChainLength
+
+      // Calculate accuracy based on the number of correct responses
+      const numCorrect = correct?.filter((x) => x === 1).length ?? 0;
+      if (numCorrect / correct.length <= accuracyThreshold) {
+        flags.push('accuracyTooLow');
+      }
+
+      isReliable = flags.filter((x) => !ignoredReliabilityFlags.includes(x)).length === 0;
     }
-
-    if (median(responseTimes) >= RESPONSE_TIME_HIGH_THRESHOLD) {
-      flags.push('responseTimeTooSlow');
-    }
-
-    const isSimilar =
-      responses.length >= RESPONSE_SIMILARITY_THRESHOLD &&
-      responses
-        .slice(responses.length - RESPONSE_SIMILARITY_THRESHOLD)
-        .every((val, i, arr) => val === arr[0]);
-    // Calculate response similarity based on maxIdenticalResponse
-    if (isSimilar) {
-      flags.push('responsesTooSimilar');
-    }
-
-    // Calculate accuracy based on the number of correct responses
-    const numCorrect = correct?.filter((x) => x === 1).length ?? 0;
-    if (numCorrect / correct.length <= ACCURACY_THRESHOLD) {
-      flags.push('accuracyTooLow');
-    }
-
-    const isReliable = flags.filter((x) => !ignoredReliabilityFlags.includes(x)).length === 0;
-
     return { flags, isReliable };
   };
 }
@@ -334,14 +333,9 @@ export function CreateEvaluateValidity({
  * @property {Array<number>} _correct An array to store the correctness of the responses.
  */
 export class ValidityEvaluator {
-  constructor({
-    evaluateValidity = () => {},
-    addEngagementFlags = () => {},
-    minResponsesRequired = 0,
-  }) {
+  constructor({ evaluateValidity = createEvaluateValidity(), handleEngagementFlags = () => {} }) {
     this.evaluateValidity = evaluateValidity;
-    this.addEngagementFlags = addEngagementFlags;
-    this.minResponsesRequired = minResponsesRequired;
+    this.handleEngagementFlags = handleEngagementFlags;
     this._responseTimes = [];
     this._responses = [];
     this._correct = [];
@@ -373,14 +367,16 @@ export class ValidityEvaluator {
     this._responses.push(response);
     this._correct.push(isCorrect);
 
-    if (this._responseTimes.length >= this.minResponsesRequired) {
-      const { flags, isReliable } = this.evaluateValidity({
-        responseTimes: this._responseTimes,
-        responses: this._responses,
-        correct: this._correct,
-      });
+    // if (this._responseTimes.length >= this.minResponsesRequired) {
+    const { flags, isReliable } = this.evaluateValidity({
+      responseTimes: this._responseTimes,
+      responses: this._responses,
+      correct: this._correct,
+    });
 
-      this.addEngagementFlags(flags, isReliable);
-    }
+    // Please note that calling this function with a new set of engagement flags
+    // will overwrite the previous set.
+    this.handleEngagementFlags(flags, isReliable);
+    // }
   }
 }
