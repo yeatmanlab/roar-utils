@@ -280,11 +280,7 @@ export function createEvaluateValidity({
   responseTimeHighThreshold = 10000,
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
-  ignoredReliabilityFlags = [
-    'responseTimeTooSlow',
-    'accuracyTooLow',
-    'notEnoughResponses',
-  ],
+  ignoredReliabilityFlags = ['responseTimeTooSlow', 'accuracyTooLow', 'notEnoughResponses'],
 }) {
   return function baseEvaluateValidity({ responseTimes, responses, correct }) {
     const flags = [];
@@ -339,6 +335,9 @@ export class ValidityEvaluator {
     this._responseTimes = [];
     this._responses = [];
     this._correct = [];
+    this._preserveFlags = [];
+    this.reliable = null;
+    this.reliableBlocks = {};
   }
 
   /**
@@ -346,7 +345,15 @@ export class ValidityEvaluator {
    * data arrays and update the evaluateValidity function if needed
    * @param {Function} evaluateValidity
    */
-  startNewBlockValidation(evaluateValidity = this.evaluateValidity) {
+  startNewBlockValidation(currentBlock, evaluateValidity = this.evaluateValidity) {
+    const { flags } = this.evaluateValidity({
+      responseTimes: this._responseTimes,
+      responses: this._responses,
+      correct: this._correct,
+    });
+    this._preserveFlags = [...flags];
+    this.currentBlock = currentBlock;
+
     this.evaluateValidity = evaluateValidity;
     this._responseTimes = [];
     this._responses = [];
@@ -367,16 +374,17 @@ export class ValidityEvaluator {
     this._responses.push(response);
     this._correct.push(isCorrect);
 
-    // if (this._responseTimes.length >= this.minResponsesRequired) {
     const { flags, isReliable } = this.evaluateValidity({
       responseTimes: this._responseTimes,
       responses: this._responses,
       correct: this._correct,
+      previousBlocks: this.reliableBlocks,
     });
 
     // Please note that calling this function with a new set of engagement flags
     // will overwrite the previous set.
-    this.handleEngagementFlags(flags, isReliable);
-    // }
+    this.handleEngagementFlags([...flags, ...this.preserveFlags], isReliable);
+    this.reliableBlocks[this.currentBlock] = isReliable;
+    this.reliable = isReliable;
   }
 }
