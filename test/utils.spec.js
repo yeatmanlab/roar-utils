@@ -413,7 +413,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.startNewBlockValidation();
+    validityEval.startNewBlockValidation("DEL");
 
     expect(validityEval._responseTimes.length).toBe(0);
     expect(validityEval._responses.length).toBe(0);
@@ -430,7 +430,7 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
       evaluateValidity: new createEvaluateValidity({
         responseTimeLowThreshold: 500,
         responseTimeHighThreshold: 800,
-        ignoredReliabilityFlags: ['responseTimeTooSlow'],
+        includedReliabilityFlags: ['responseTimeTooSlow'],
         minResponsesRequired: 4,
       }),
       handleEngagementFlags: testAddFlags,

@@ -272,7 +272,7 @@ export const median = (array) => {
  * @param {number} responseTimeLowThreshold - The minimum acceptable response time threshold in MS.
  * @param {number} responseTimeHighThreshold - The maximum acceptable response time threshold in MS.
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
- * @param {array} ignoredReliabilityFlags - An array of flags that should be ignored when evaluating reliability.
+ * @param {array} includedReliabilityFlags - An array of flags that should be included when evaluating reliability.
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
 export function createEvaluateValidity({
@@ -280,7 +280,7 @@ export function createEvaluateValidity({
   responseTimeHighThreshold = 10000,
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
-  ignoredReliabilityFlags = ['responseTimeTooSlow', 'accuracyTooLow', 'notEnoughResponses'],
+  includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
   return function baseEvaluateValidity({ responseTimes, responses, correct }) {
     const flags = [];
@@ -306,7 +306,7 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
 
-      isReliable = flags.filter((x) => !ignoredReliabilityFlags.includes(x)).length === 0;
+      isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
     }
     return { flags, isReliable };
   };
@@ -336,6 +336,7 @@ export class ValidityEvaluator {
     this._responses = [];
     this._correct = [];
     this._preserveFlags = [];
+    this.currentBlock = null;
     this.reliable = null;
     this.reliableBlocks = {};
   }
@@ -343,15 +344,22 @@ export class ValidityEvaluator {
   /**
    *  @function startNewBlockValidation Called when a new block is started to reset the
    * data arrays and update the evaluateValidity function if needed
+   * For block-scoped assessments, this function must be called with the first block name
+   * before beginning the first block
    * @param {Function} evaluateValidity
+   * @param {String} currentBlock The name of the current block
    */
   startNewBlockValidation(currentBlock, evaluateValidity = this.evaluateValidity) {
-    const { flags } = this.evaluateValidity({
-      responseTimes: this._responseTimes,
-      responses: this._responses,
-      correct: this._correct,
-    });
-    this._preserveFlags = [...flags];
+    // compute flags from the previous block only if the responseTimes array is not empty
+    // this prevents a tooFewResponses flag from being generated before the first block begins
+    if (this._responseTimes.length > 0) {
+      const { flags } = this.evaluateValidity({
+        responseTimes: this._responseTimes,
+        responses: this._responses,
+        correct: this._correct,
+      });
+      this._preserveFlags = [...this._preserveFlags, ...flags];
+    }
     this.currentBlock = currentBlock;
 
     this.evaluateValidity = evaluateValidity;
@@ -367,7 +375,7 @@ export class ValidityEvaluator {
    * @param {number} responseTime Time it took for a user to respond to a stimulus
    * @param {string} response  Choice that a user responded with
    * ex: left_arrow, right_arrow, button_3
-   * @param {number} isCorrect 1 if a user answered correctly, 0if answered incorrectly
+   * @param {number} isCorrect 1 if a user answered correctly, 0 if answered incorrectly
    */
   addResponseData(responseTime, response, isCorrect) {
     this._responseTimes.push(responseTime);
@@ -378,13 +386,22 @@ export class ValidityEvaluator {
       responseTimes: this._responseTimes,
       responses: this._responses,
       correct: this._correct,
-      previousBlocks: this.reliableBlocks,
     });
 
-    // Please note that calling this function with a new set of engagement flags
-    // will overwrite the previous set.
-    this.handleEngagementFlags([...flags, ...this.preserveFlags], isReliable);
-    this.reliableBlocks[this.currentBlock] = isReliable;
     this.reliable = isReliable;
+
+    // Case for block based assessments – append block name to flags before passing to handleEngagementFlags
+    if (this.currentBlock !== undefined) {
+      this.reliableBlocks[this.currentBlock] = isReliable;
+      flags = flags.map((flag) => `${flag}_${currentBlock}`);
+
+      // TODO: Add some logic to set reliability based on reliableBlocks
+
+      this.handleEngagementFlags([...this.preserveFlags, ...flags], isReliable, reliableBlocks);
+    } else {
+      // Please note that calling this function with a new set of engagement flags
+      // will overwrite the previous set.
+      this.handleEngagementFlags([...this.preserveFlags, ...flags], isReliable);
+    }
   }
 }
