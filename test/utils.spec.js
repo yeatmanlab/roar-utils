@@ -309,8 +309,9 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
-        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths =
+        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
+        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
@@ -408,17 +409,6 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     expect(validityEval._responseTimes.length).toBe(6);
     expect(testAddFlags).toHaveBeenLastCalledWith(['accuracyTooLow'], true);
   });
-  test('Tests that resetResponseData properly clears response arrays', () => {
-    validityEval.addResponseData(550, 'right_arrow', 0);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.startNewBlockValidation('DEL');
-
-    expect(validityEval._responseTimes.length).toBe(0);
-    expect(validityEval._responses.length).toBe(0);
-    expect(validityEval._correct.length).toBe(0);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses'], false);
-  });
 });
 
 describe('ValidityEvaluator tests with custom validation parameters', () => {
@@ -429,7 +419,7 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
       evaluateValidity: new createEvaluateValidity({
         responseTimeLowThreshold: 500,
         responseTimeHighThreshold: 800,
-        includedReliabilityFlags: ['responseTimeTooSlow'],
+        includedReliabilityFlags: ['responseTimeTooFast'],
         minResponsesRequired: 4,
       }),
       handleEngagementFlags: testAddFlags,
@@ -461,5 +451,159 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
     validityEval.addResponseData(250, 'left_arrow', 1);
     validityEval.addResponseData(250, 'left_arrow', 1);
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast'], false);
+  });
+});
+
+describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
+  let validityEval;
+
+  beforeEach(() => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: new createEvaluateValidity({
+        responseTimeLowThreshold: 500,
+        responseTimeHighThreshold: 800,
+        includedReliabilityFlags: ['responseTimeTooFast'],
+        minResponsesRequired: 4,
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+    validityEval.startNewBlockValidation('DEL');
+  });
+
+  test('Tests that startNewBlockValidation properly clears response arrays', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.startNewBlockValidation('FSM');
+
+    expect(validityEval._responseTimes.length).toBe(0);
+    expect(validityEval._responses.length).toBe(0);
+    expect(validityEval._correct.length).toBe(0);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL'], false, { DEL: false});
+  });
+
+  test('Test that a block terminated midway properly sets reliability', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.startNewBlockValidation('FSM');
+
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_FSM'], false, { DEL: true, FSM: false});
+  });
+
+  test('Test for a reliable run with no flags', () => {
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(620, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'left_arrow', 1);
+    validityEval.addResponseData(710, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('FSM');
+    validityEval.addResponseData(520, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(610, 'left_arrow', 0);
+    validityEval.addResponseData(810, 'left_arrow', 0);
+    validityEval.addResponseData(610, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('LSM');
+    validityEval.addResponseData(620, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'left_arrow', 1);
+    validityEval.addResponseData(610, 'left_arrow', 1);
+    validityEval.addResponseData(510, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'right_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true, {
+      DEL: true,
+      FSM: true,
+      LSM: true,
+    });
+  });
+
+  test('Test for flag retention with preserveFlags', () => {
+    validityEval.addResponseData(800, 'right_arrow', 0);
+    validityEval.addResponseData(920, 'left_arrow', 1);
+    validityEval.addResponseData(950, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'left_arrow', 1);
+    validityEval.addResponseData(910, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('FSM');
+    validityEval.addResponseData(520, 'left_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 0);
+    validityEval.addResponseData(610, 'left_arrow', 0);
+    validityEval.addResponseData(810, 'left_arrow', 0);
+    validityEval.addResponseData(610, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('LSM');
+    validityEval.addResponseData(320, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'left_arrow', 1);
+    validityEval.addResponseData(310, 'left_arrow', 1);
+    validityEval.addResponseData(310, 'left_arrow', 1);
+    validityEval.addResponseData(310, 'right_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith(
+      ['responseTimeTooSlow_DEL', 'accuracyTooLow_FSM', 'responseTimeTooFast_LSM'],
+      false,
+      {
+        DEL: true,
+        FSM: true,
+        LSM: false,
+      },
+    );
+  });
+
+  test('Test for multiple flag retention per block with _preserveFlags', () => {
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(420, 'left_arrow', 0);
+    validityEval.addResponseData(450, 'left_arrow', 0);
+    validityEval.addResponseData(410, 'left_arrow', 0);
+    validityEval.addResponseData(410, 'left_arrow', 0);
+    validityEval.addResponseData(410, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('FSM');
+    validityEval.addResponseData(520, 'left_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'right_arrow', 1);
+
+    validityEval.startNewBlockValidation('LSM');
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'left_arrow', 0);
+    validityEval.addResponseData(310, 'right_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith(
+      [
+        'responseTimeTooFast_DEL',
+        'accuracyTooLow_DEL',
+        'responseTimeTooFast_FSM',
+        'accuracyTooLow_FSM',
+        'responseTimeTooFast_LSM',
+        'accuracyTooLow_LSM',
+      ],
+      false,
+      {
+        DEL: false,
+        FSM: false,
+        LSM: false,
+      },
+    );
+  });
+
+  test('Tests that valid first block is marked as so', () => {
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'left_arrow', 1);
+    validityEval.addResponseData(530, 'right_arrow', 0);
+    validityEval.addResponseData(520, 'left_arrow', 1);
+    validityEval.addResponseData(510, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true, { DEL: true });
   });
 });

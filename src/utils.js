@@ -288,7 +288,7 @@ export function createEvaluateValidity({
     let isReliable = false;
 
     if (responseTimes.length < minResponsesRequired) {
-      flags.push('notEnoughResponses');
+      flags.push('notEnoughResponses');    
     } else {
       // verifies if responseTimes lie above or below a threshold
       if (median(responseTimes) <= responseTimeLowThreshold) {
@@ -306,7 +306,6 @@ export function createEvaluateValidity({
       if (numCorrect / correct.length <= accuracyThreshold) {
         flags.push('accuracyTooLow');
       }
-
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
     }
     return { flags, isReliable };
@@ -337,7 +336,7 @@ export class ValidityEvaluator {
     this._responses = [];
     this._correct = [];
     this._preserveFlags = [];
-    this.currentBlock = null;
+    this.currentBlock = undefined;
     this.reliable = null;
     this.reliableBlocks = {};
   }
