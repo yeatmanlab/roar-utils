@@ -1,6 +1,8 @@
 import jsPsychPreload from '@jspsych/plugin-preload';
 import path from 'path-browserify';
-import { getAssetType, getDevice, getFormattedURL, getLanguage, camelize } from './utils';
+import {
+  getAssetType, getDevice, getFormattedURL, getLanguage, camelize,
+} from './utils';
 
 /**
  * Generates an asset object from a given JSON object, bucket URI and language.
