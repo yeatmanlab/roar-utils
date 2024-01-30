@@ -309,9 +309,8 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths =
-        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
-        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
+        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
@@ -413,7 +412,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.startNewBlockValidation("DEL");
+    validityEval.startNewBlockValidation('DEL');
 
     expect(validityEval._responseTimes.length).toBe(0);
     expect(validityEval._responses.length).toBe(0);

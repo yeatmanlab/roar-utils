@@ -272,7 +272,8 @@ export const median = (array) => {
  * @param {number} responseTimeLowThreshold - The minimum acceptable response time threshold in MS.
  * @param {number} responseTimeHighThreshold - The maximum acceptable response time threshold in MS.
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
- * @param {array} includedReliabilityFlags - An array of flags that should be included when evaluating reliability.
+ * @param {array} includedReliabilityFlags - An array of flags that should be included
+ * when evaluating reliability.
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
 export function createEvaluateValidity({
@@ -342,6 +343,26 @@ export class ValidityEvaluator {
   }
 
   /**
+   * Takes in array of flags and returns array of flags with current block appended to each flag
+   * @function appendCurrentBlockToFlags
+   * @param {Array<string>} flags
+   */
+  appendCurrentBlockToFlags(flags) {
+    if (this.currentBlock !== undefined) {
+      return flags.map((flag) => `${flag}_${this.currentBlock}`);
+    }
+    return flags;
+  }
+
+  /**
+   * Returns true if all blocks so far are reliable, false if not
+   * @function calculateReliabilityWithBlocks
+   */
+  calculateReliabilityWithBlocks() {
+    return Object.values(this.reliableBlocks).every((x) => x === true);
+  }
+
+  /**
    *  @function startNewBlockValidation Called when a new block is started to reset the
    * data arrays and update the evaluateValidity function if needed
    * For block-scoped assessments, this function must be called with the first block name
@@ -350,15 +371,23 @@ export class ValidityEvaluator {
    * @param {String} currentBlock The name of the current block
    */
   startNewBlockValidation(currentBlock, evaluateValidity = this.evaluateValidity) {
-    // compute flags from the previous block only if the responseTimes array is not empty
-    // this prevents a tooFewResponses flag from being generated before the first block begins
-    if (this._responseTimes.length > 0) {
+    // Compute and store flags from the previous block
+    // The first conditional prevents a tooFewResponses flag from being
+    // stored erroneously before the initial block begins
+    if (this._responseTimes.length > 0 && currentBlock !== undefined) {
       const { flags } = this.evaluateValidity({
         responseTimes: this._responseTimes,
         responses: this._responses,
         correct: this._correct,
       });
-      this._preserveFlags = [...this._preserveFlags, ...flags];
+      this._preserveFlags = [...this._preserveFlags, ...this.appendCurrentBlockToFlags(flags)];
+
+      // Store flags and reliability in case the next block starts but is not played
+      this.handleEngagementFlags(
+        [...this._preserveFlags],
+        this.calculateReliabilityWithBlocks(),
+        this.reliableBlocks,
+      );
     }
     this.currentBlock = currentBlock;
 
@@ -390,18 +419,21 @@ export class ValidityEvaluator {
 
     this.reliable = isReliable;
 
-    // Case for block based assessments – append block name to flags before passing to handleEngagementFlags
+    // Case for block based assessments
     if (this.currentBlock !== undefined) {
       this.reliableBlocks[this.currentBlock] = isReliable;
-      flags = flags.map((flag) => `${flag}_${currentBlock}`);
 
-      // TODO: Add some logic to set reliability based on reliableBlocks
-
-      this.handleEngagementFlags([...this.preserveFlags, ...flags], isReliable, reliableBlocks);
+      // Please note that calling this function with a new set of engagement flags
+      // will overwrite the previous set.
+      this.handleEngagementFlags(
+        [...this._preserveFlags, ...this.appendCurrentBlockToFlags(flags)],
+        this.calculateReliabilityWithBlocks(),
+        this.reliableBlocks,
+      );
     } else {
       // Please note that calling this function with a new set of engagement flags
       // will overwrite the previous set.
-      this.handleEngagementFlags([...this.preserveFlags, ...flags], isReliable);
+      this.handleEngagementFlags(flags, isReliable);
     }
   }
 }
