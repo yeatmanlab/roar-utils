@@ -309,9 +309,8 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths =
-        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
-        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
+        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
@@ -479,7 +478,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     expect(validityEval._responseTimes.length).toBe(0);
     expect(validityEval._responses.length).toBe(0);
     expect(validityEval._correct.length).toBe(0);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL'], false, { DEL: false});
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL'], false, { DEL: false });
   });
 
   test('Test that a block terminated midway properly sets reliability', () => {
@@ -495,7 +494,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'left_arrow', 1);
 
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_FSM'], false, { DEL: true, FSM: false});
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_FSM'], false, { DEL: true, FSM: false });
   });
 
   test('Test for a reliable run with no flags', () => {
