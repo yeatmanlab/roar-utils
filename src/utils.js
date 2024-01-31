@@ -288,7 +288,7 @@ export function createEvaluateValidity({
     let isReliable = false;
 
     if (responseTimes.length < minResponsesRequired) {
-      flags.push('notEnoughResponses');    
+      flags.push('notEnoughResponses');
     } else {
       // verifies if responseTimes lie above or below a threshold
       if (median(responseTimes) <= responseTimeLowThreshold) {
@@ -337,7 +337,6 @@ export class ValidityEvaluator {
     this._correct = [];
     this._preserveFlags = [];
     this.currentBlock = undefined;
-    this.reliable = null;
     this.reliableBlocks = {};
   }
 
@@ -415,8 +414,6 @@ export class ValidityEvaluator {
       responses: this._responses,
       correct: this._correct,
     });
-
-    this.reliable = isReliable;
 
     // Case for block based assessments
     if (this.currentBlock !== undefined) {
