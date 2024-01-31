@@ -337,7 +337,7 @@ export class ValidityEvaluator {
     this._correct = [];
     this._preserveFlags = [];
     this.currentBlock = undefined;
-    this.reliableBlocks = {};
+    this.reliabilityByBlock = {};
   }
 
   /**
@@ -357,7 +357,7 @@ export class ValidityEvaluator {
    * @function calculateReliabilityWithBlocks
    */
   calculateReliabilityWithBlocks() {
-    return Object.values(this.reliableBlocks).every((x) => x === true);
+    return Object.values(this.reliabilityByBlock).every((x) => x === true);
   }
 
   /**
@@ -384,7 +384,7 @@ export class ValidityEvaluator {
       this.handleEngagementFlags(
         [...this._preserveFlags],
         this.calculateReliabilityWithBlocks(),
-        this.reliableBlocks,
+        this.reliabilityByBlock,
       );
     }
     this.currentBlock = currentBlock;
@@ -417,14 +417,14 @@ export class ValidityEvaluator {
 
     // Case for block based assessments
     if (this.currentBlock !== undefined) {
-      this.reliableBlocks[this.currentBlock] = isReliable;
+      this.reliabilityByBlock[this.currentBlock] = isReliable;
 
       // Please note that calling this function with a new set of engagement flags
       // will overwrite the previous set.
       this.handleEngagementFlags(
         [...this._preserveFlags, ...this.appendCurrentBlockToFlags(flags)],
         this.calculateReliabilityWithBlocks(),
-        this.reliableBlocks,
+        this.reliabilityByBlock,
       );
     } else {
       // Please note that calling this function with a new set of engagement flags
