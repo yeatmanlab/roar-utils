@@ -290,8 +290,7 @@ export function createPreloadTrials(jsonData, bucketURI, language) {
 
   return preloadTrials;
 }
-
-class RoarProgressBar {
+export class RoarProgressBar {
   constructor(numTrialsPerBlock, thresholds) {
     this.numTrialsPerBlock = numTrialsPerBlock;
     this.currentBlock = 0;
