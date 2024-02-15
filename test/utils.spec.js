@@ -617,12 +617,12 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(530, 'right_arrow', 0);
     validityEval.addResponseData(520, 'left_arrow', 1);
     validityEval.addResponseData(510, 'left_arrow', 1);
-    
+
     expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: false});
   });
 });
 
-describe('ValidityEvaluator with incomplete flag', () => {
+describe('ValidityEvaluator with incomplete flag for a non-block based assessment', () => {
   let validityEval;
 
   beforeEach(() => {
@@ -635,7 +635,6 @@ describe('ValidityEvaluator with incomplete flag', () => {
       }),
       handleEngagementFlags: testAddFlags,
     });
-    validityEval.startNewBlockValidation('DEL');
   });
 
   test('Test that an incomplete run is flagged as unreliable', () => {
@@ -643,7 +642,11 @@ describe('ValidityEvaluator with incomplete flag', () => {
     validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.addResponseData(600, 'right_arrow', 0);
     validityEval.addResponseData(600, 'left_arrow', 1);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: false });
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false);
   })
 
   test('Test that an complete run is flagged as reliable', () => {
@@ -651,7 +654,11 @@ describe('ValidityEvaluator with incomplete flag', () => {
     validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.addResponseData(600, 'right_arrow', 0);
     validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.markAsCompleted();
-    expect(testAddFlags).toHaveBeenLastCalledWith([], true, { DEL: true});
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   })
 })
