@@ -283,10 +283,9 @@ export function createEvaluateValidity({
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
-  return function baseEvaluateValidity({ responseTimes, responses, correct }) {
+  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
     const flags = [];
     let isReliable = false;
-
     if (responseTimes.length < minResponsesRequired) {
       flags.push('notEnoughResponses');
     } else {
@@ -297,6 +296,9 @@ export function createEvaluateValidity({
 
       if (median(responseTimes) >= responseTimeHighThreshold) {
         flags.push('responseTimeTooSlow');
+      }
+      if (completed === false && includedReliabilityFlags.includes('incomplete')) {
+        flags.push('incomplete');
       }
 
       // TODO: Calculate response similarity based on maxChainLength
@@ -338,6 +340,7 @@ export class ValidityEvaluator {
     this._preserveFlags = [];
     this.currentBlock = undefined;
     this.reliabilityByBlock = {};
+    this.completed = false;
   }
 
   /**
@@ -347,7 +350,8 @@ export class ValidityEvaluator {
    */
   appendCurrentBlockToFlags(flags) {
     if (this.currentBlock !== undefined) {
-      return flags.map((flag) => `${flag}_${this.currentBlock}`);
+      // We only want to append for block based flags, incomplete would be a global flag
+      return flags.map((flag) => (flag !== 'incomplete' ? `${flag}_${this.currentBlock}` : flag));
     }
     return flags;
   }
@@ -373,19 +377,9 @@ export class ValidityEvaluator {
     // The first conditional prevents a tooFewResponses flag from being
     // stored erroneously before the initial block begins
     if (this._responseTimes.length > 0 && currentBlock !== undefined) {
-      const { flags } = this.evaluateValidity({
-        responseTimes: this._responseTimes,
-        responses: this._responses,
-        correct: this._correct,
-      });
+      const flags = this.calculateAndUpdateFlags();
+      // Update new flags to preserveFlags array
       this._preserveFlags = [...this._preserveFlags, ...this.appendCurrentBlockToFlags(flags)];
-
-      // Store flags and reliability in case the next block starts but is not played
-      this.handleEngagementFlags(
-        [...this._preserveFlags],
-        this.calculateReliabilityWithBlocks(),
-        this.reliabilityByBlock,
-      );
     }
     this.currentBlock = currentBlock;
 
@@ -393,26 +387,30 @@ export class ValidityEvaluator {
     this._responseTimes = [];
     this._responses = [];
     this._correct = [];
+    this.completed = false;
   }
 
   /**
-   * Updates ValidityEvaluator arrays (responseTimes, response, and accuracy) with
-   *
-   * @function addResponseData
-   * @param {number} responseTime Time it took for a user to respond to a stimulus
-   * @param {string} response  Choice that a user responded with
-   * ex: left_arrow, right_arrow, button_3
-   * @param {number} isCorrect 1 if a user answered correctly, 0 if answered incorrectly
-   */
-  addResponseData(responseTime, response, isCorrect) {
-    this._responseTimes.push(responseTime);
-    this._responses.push(response);
-    this._correct.push(isCorrect);
+   *  @function markAsCompleted Called when a block or task is completed. 
+   * For block-scoped assessments, this function must be called at the completion 
+   * of each block
+   * */
+  markAsCompleted() {
+    this.completed = true;
+    this.calculateAndUpdateFlags();
+  }
 
+  /**
+   *  @function calculateAndUpdateFlags Helper function to calculate flag and reliability
+   * and use the handleEngagementFlags function to update the run's firekit object
+   * @return {Array<string>} flags 
+   * */
+  calculateAndUpdateFlags() {
     const { flags, isReliable } = this.evaluateValidity({
       responseTimes: this._responseTimes,
       responses: this._responses,
       correct: this._correct,
+      completed: this.completed,
     });
 
     // Case for block based assessments
@@ -431,5 +429,23 @@ export class ValidityEvaluator {
       // will overwrite the previous set.
       this.handleEngagementFlags(flags, isReliable);
     }
+    return flags;
+  }
+
+  /**
+   * Updates ValidityEvaluator arrays (responseTimes, response, and accuracy) with
+   *
+   * @function addResponseData
+   * @param {number} responseTime Time it took for a user to respond to a stimulus
+   * @param {string} response  Choice that a user responded with
+   * ex: left_arrow, right_arrow, button_3
+   * @param {number} isCorrect 1 if a user answered correctly, 0 if answered incorrectly
+   */
+  addResponseData(responseTime, response, isCorrect) {
+    this._responseTimes.push(responseTime);
+    this._responses.push(response);
+    this._correct.push(isCorrect);
+
+    this.calculateAndUpdateFlags();
   }
 }

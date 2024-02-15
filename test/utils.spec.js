@@ -461,7 +461,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
       evaluateValidity: new createEvaluateValidity({
         responseTimeLowThreshold: 500,
         responseTimeHighThreshold: 800,
-        includedReliabilityFlags: ['responseTimeTooFast'],
+        includedReliabilityFlags: ['responseTimeTooFast', 'incomplete'],
         minResponsesRequired: 4,
       }),
       handleEngagementFlags: testAddFlags,
@@ -478,7 +478,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     expect(validityEval._responseTimes.length).toBe(0);
     expect(validityEval._responses.length).toBe(0);
     expect(validityEval._correct.length).toBe(0);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL'], false, { DEL: false });
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL' ], false, { DEL: false });
   });
 
   test('Test that a block terminated midway properly sets reliability', () => {
@@ -488,13 +488,17 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'left_arrow', 1);
-    validityEval.startNewBlockValidation('FSM');
+    validityEval.markAsCompleted();
 
+    validityEval.startNewBlockValidation('FSM');
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(550, 'left_arrow', 1);
     validityEval.addResponseData(550, 'left_arrow', 1);
 
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_FSM'], false, { DEL: true, FSM: false });
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: true, FSM: false });
   });
 
   test('Test for a reliable run with no flags', () => {
@@ -504,6 +508,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(710, 'left_arrow', 1);
     validityEval.addResponseData(910, 'left_arrow', 1);
     validityEval.addResponseData(910, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('FSM');
     validityEval.addResponseData(520, 'left_arrow', 1);
@@ -511,6 +516,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(610, 'left_arrow', 0);
     validityEval.addResponseData(810, 'left_arrow', 0);
     validityEval.addResponseData(610, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('LSM');
     validityEval.addResponseData(620, 'left_arrow', 1);
@@ -518,6 +524,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(610, 'left_arrow', 1);
     validityEval.addResponseData(510, 'left_arrow', 1);
     validityEval.addResponseData(910, 'right_arrow', 1);
+    validityEval.markAsCompleted();
     expect(testAddFlags).toHaveBeenLastCalledWith([], true, {
       DEL: true,
       FSM: true,
@@ -532,6 +539,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(910, 'left_arrow', 1);
     validityEval.addResponseData(910, 'left_arrow', 1);
     validityEval.addResponseData(910, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('FSM');
     validityEval.addResponseData(520, 'left_arrow', 0);
@@ -539,6 +547,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(610, 'left_arrow', 0);
     validityEval.addResponseData(810, 'left_arrow', 0);
     validityEval.addResponseData(610, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('LSM');
     validityEval.addResponseData(320, 'left_arrow', 1);
@@ -546,6 +555,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(310, 'left_arrow', 1);
     validityEval.addResponseData(310, 'left_arrow', 1);
     validityEval.addResponseData(310, 'right_arrow', 1);
+    validityEval.markAsCompleted();
     expect(testAddFlags).toHaveBeenLastCalledWith(
       ['responseTimeTooSlow_DEL', 'accuracyTooLow_FSM', 'responseTimeTooFast_LSM'],
       false,
@@ -564,6 +574,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(410, 'left_arrow', 0);
     validityEval.addResponseData(410, 'left_arrow', 0);
     validityEval.addResponseData(410, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('FSM');
     validityEval.addResponseData(520, 'left_arrow', 0);
@@ -571,6 +582,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(310, 'left_arrow', 0);
     validityEval.addResponseData(310, 'left_arrow', 0);
     validityEval.addResponseData(310, 'right_arrow', 1);
+    validityEval.markAsCompleted();
 
     validityEval.startNewBlockValidation('LSM');
     validityEval.addResponseData(320, 'left_arrow', 0);
@@ -578,6 +590,8 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(310, 'left_arrow', 0);
     validityEval.addResponseData(310, 'left_arrow', 0);
     validityEval.addResponseData(310, 'right_arrow', 1);
+    validityEval.markAsCompleted();
+
     expect(testAddFlags).toHaveBeenLastCalledWith(
       [
         'responseTimeTooFast_DEL',
@@ -596,13 +610,55 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     );
   });
 
-  test('Tests that valid first block is marked as so', () => {
+  test('Tests that only finishing the first block run is marked as incomplete', () => {
     validityEval.addResponseData(400, 'right_arrow', 0);
     validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.addResponseData(650, 'left_arrow', 1);
     validityEval.addResponseData(530, 'right_arrow', 0);
     validityEval.addResponseData(520, 'left_arrow', 1);
     validityEval.addResponseData(510, 'left_arrow', 1);
-    expect(testAddFlags).toHaveBeenLastCalledWith([], true, { DEL: true });
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: false});
   });
 });
+
+describe('ValidityEvaluator with incomplete flag for a non-block based assessment', () => {
+  let validityEval;
+
+  beforeEach(() => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: new createEvaluateValidity({
+        responseTimeLowThreshold: 500,
+        responseTimeHighThreshold: 800,
+        includedReliabilityFlags: ['responseTimeTooFast', 'incomplete'],
+        minResponsesRequired: 2,
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+  });
+
+  test('Test that an incomplete run is flagged as unreliable', () => {
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false);
+  })
+
+  test('Test that an complete run is flagged as reliable', () => {
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(400, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.markAsCompleted();
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  })
+})
