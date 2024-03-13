@@ -266,7 +266,7 @@ const agePossibilities = [
     age: null,
     ageMonths: 254,
     expectedBirthMonth: 12 + ((testDate.getMonth() + 1 - 254) % 12),
-    expectedBirthYear: testDate.getFullYear() - Math.ceil(254 / 12),
+    expectedBirthYear: testDate.getFullYear() - Math.floor(254 / 12),
   },
   {
     birthMonth: null,
@@ -309,10 +309,13 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
-        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths =
+        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
+        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
+    console.log('Age inputs', poss);
+    console.log('ageData', ageData);
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
     expect(ageData.birthYear).toBe(poss.expectedBirthYear);
     expect(ageData.age).toBe(expectedAge);
@@ -325,10 +328,13 @@ test('Correctly parses grade', () => {
   expect(getGrade('K')).toBe(0);
   expect(getGrade('4')).toBe(4);
   expect(getGrade(5)).toBe(5);
-  expect(getGrade('20')).toBe(12);
-  expect(getGrade(20)).toBe(12);
+  expect(getGrade('20')).toBe(13);
+  expect(getGrade(20)).toBe(13);
   expect(getGrade('-5')).toBe(0);
   expect(getGrade(-5)).toBe(0);
+  expect(getGrade('Transitional-kindergarten')).toBe(0);
+  expect(getGrade('Pre Kindergarten')).toBe(0);
+  expect(getGrade('sophomore')).toBe(10);
 
   expect(getGrade('K', 2, 8)).toBe(2);
   expect(getGrade('4', 2, 8)).toBe(4);
@@ -337,6 +343,9 @@ test('Correctly parses grade', () => {
   expect(getGrade(20, 2, 8)).toBe(8);
   expect(getGrade('-5', 2, 8)).toBe(2);
   expect(getGrade(-5, 2, 8)).toBe(2);
+  expect(getGrade('Transitional-kindergarten', 2, 8)).toBe(2);
+  expect(getGrade('Pre Kindergarten', 2, 8)).toBe(2);
+  expect(getGrade('sophomore', 2, 8)).toBe(8);
 });
 
 const testAddFlags = jest.fn();
@@ -478,7 +487,9 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     expect(validityEval._responseTimes.length).toBe(0);
     expect(validityEval._responses.length).toBe(0);
     expect(validityEval._correct.length).toBe(0);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL' ], false, { DEL: false });
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses_DEL'], false, {
+      DEL: false,
+    });
   });
 
   test('Test that a block terminated midway properly sets reliability', () => {
@@ -618,7 +629,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(520, 'left_arrow', 1);
     validityEval.addResponseData(510, 'left_arrow', 1);
 
-    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: false});
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, { DEL: false });
   });
 });
 
@@ -647,7 +658,7 @@ describe('ValidityEvaluator with incomplete flag for a non-block based assessmen
     validityEval.addResponseData(600, 'right_arrow', 0);
     validityEval.addResponseData(600, 'left_arrow', 1);
     expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false);
-  })
+  });
 
   test('Test that an complete run is flagged as reliable', () => {
     validityEval.addResponseData(400, 'right_arrow', 0);
@@ -660,5 +671,5 @@ describe('ValidityEvaluator with incomplete flag for a non-block based assessmen
     validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.markAsCompleted();
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
-  })
-})
+  });
+});
