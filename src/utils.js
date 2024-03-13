@@ -229,23 +229,77 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
  *
  * @returns {number} numeric grade
  */
-export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 12) => {
+export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
   const parsedGrade = Number(inputGrade);
-  let grade;
+  const gradeStringMap = {
+    k: 0,
+    tk: 0,
+    pk: 0,
+    preschool: 0,
+    prekindergarten: 0,
+    transitionalkindergarten: 0,
+    kindergarten: 0,
+    infanttoddler: 0,
+    infant: 0,
+    toddler: 0,
+    first: 1,
+    firstgrade: 1,
+    second: 2,
+    secondgrade: 2,
+    third: 3,
+    thirdgrade: 3,
+    fourth: 4,
+    fourthgrade: 4,
+    fifth: 5,
+    fifthgrade: 5,
+    sixth: 6,
+    sixthgrade: 6,
+    seventh: 7,
+    seventhgrade: 7,
+    eighth: 8,
+    eighthgrade: 8,
+    ninth: 9,
+    ninthgrade: 9,
+    tenth: 10,
+    tenthgrade: 10,
+    eleventh: 11,
+    eleventhgrade: 11,
+    twelfth: 12,
+    twelfthgrade: 12,
+    freshman: 9,
+    sophomore: 10,
+    junior: 11,
+    senior: 12,
+    postgraduate: 13,
+    university: 13,
+    graduate: 13,
+    master: 13,
+    doctorate: 13,
+    masters: 13,
+  };
 
   if (Number.isNaN(parsedGrade)) {
-    // Assume grade is K, TK, or PK
-    grade = gradeMin;
+    // Grade is a string. Remove any whitespace and hyphens. Make lowercase.
+    // And refer to the gradeStringMap for the mapping.
+    const spaceRegex = /\s/g;
+    const hyphenRegex = /-/g;
+    const standardizedGradeString = inputGrade
+      .toLowerCase()
+      .replace(spaceRegex, '')
+      .replace(hyphenRegex, '');
+    const grade = gradeStringMap[standardizedGradeString];
+    if (grade === undefined) return undefined;
+    if (grade < gradeMin) return gradeMin;
+    if (grade > gradeMax) return gradeMax;
+    return grade;
   } else if (parsedGrade < gradeMin) {
-    grade = gradeMin;
+    return gradeMin;
   } else if (parsedGrade > gradeMax) {
-    grade = gradeMax;
-  } else {
-    // grade is within range and is a number
-    grade = parsedGrade;
+    return gradeMax;
   }
 
-  return grade;
+  // grade is within range and is a number
+  return parsedGrade;
 };
 
 /**
@@ -391,8 +445,8 @@ export class ValidityEvaluator {
   }
 
   /**
-   *  @function markAsCompleted Called when a block or task is completed. 
-   * For block-scoped assessments, this function must be called at the completion 
+   *  @function markAsCompleted Called when a block or task is completed.
+   * For block-scoped assessments, this function must be called at the completion
    * of each block
    * */
   markAsCompleted() {
@@ -403,7 +457,7 @@ export class ValidityEvaluator {
   /**
    *  @function calculateAndUpdateFlags Helper function to calculate flag and reliability
    * and use the handleEngagementFlags function to update the run's firekit object
-   * @return {Array<string>} flags 
+   * @return {Array<string>} flags
    * */
   calculateAndUpdateFlags() {
     const { flags, isReliable } = this.evaluateValidity({
