@@ -278,6 +278,11 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     masters: 13,
   };
 
+  // if inputGrade is null or undefined, return undefined to avoid an error with undefined.toLowerCase()
+  if(inputGrade === null || inputGrade === undefined) {
+    return undefined
+  }
+
   if (Number.isNaN(parsedGrade)) {
     // Grade is a string. Remove any whitespace and hyphens. Make lowercase.
     // And refer to the gradeStringMap for the mapping.

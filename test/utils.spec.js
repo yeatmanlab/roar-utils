@@ -346,6 +346,7 @@ test('Correctly parses grade', () => {
   expect(getGrade('Transitional-kindergarten', 2, 8)).toBe(2);
   expect(getGrade('Pre Kindergarten', 2, 8)).toBe(2);
   expect(getGrade('sophomore', 2, 8)).toBe(8);
+  expect(getGrade(undefined, 2, 8)).toBe(undefined);
 });
 
 const testAddFlags = jest.fn();
