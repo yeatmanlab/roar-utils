@@ -279,8 +279,8 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
   };
 
   // if inputGrade is null or undefined, return undefined to avoid an error with undefined.toLowerCase()
-  if(inputGrade === null || inputGrade === undefined) {
-    return undefined
+  if (inputGrade === null || inputGrade === undefined) {
+    return undefined;
   }
 
   if (Number.isNaN(parsedGrade)) {
@@ -369,7 +369,8 @@ export function createEvaluateValidity({
       }
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
     }
-    return { flags, isReliable };
+    const filteredFlags = flags.filter((x) => includedReliabilityFlags.includes(x));
+    return { filteredFlags, isReliable };
   };
 }
 
