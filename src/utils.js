@@ -297,9 +297,9 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     if (grade < gradeMin) return gradeMin;
     if (grade > gradeMax) return gradeMax;
     return grade;
-  } else if (parsedGrade < gradeMin) {
+  } if (parsedGrade < gradeMin) {
     return gradeMin;
-  } else if (parsedGrade > gradeMax) {
+  } if (parsedGrade > gradeMax) {
     return gradeMax;
   }
 
@@ -342,7 +342,9 @@ export function createEvaluateValidity({
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
-  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
+  return function baseEvaluateValidity({
+    responseTimes, responses, correct, completed,
+  }) {
     const flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {

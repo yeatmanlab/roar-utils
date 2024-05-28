@@ -309,13 +309,10 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths =
-        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
-        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
+        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
-    console.log('Age inputs', poss);
-    console.log('ageData', ageData);
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
     expect(ageData.birthYear).toBe(poss.expectedBirthYear);
     expect(ageData.age).toBe(expectedAge);
