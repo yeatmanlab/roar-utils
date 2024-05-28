@@ -297,9 +297,11 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     if (grade < gradeMin) return gradeMin;
     if (grade > gradeMax) return gradeMax;
     return grade;
-  } if (parsedGrade < gradeMin) {
+  }
+  if (parsedGrade < gradeMin) {
     return gradeMin;
-  } if (parsedGrade > gradeMax) {
+  }
+  if (parsedGrade > gradeMax) {
     return gradeMax;
   }
 
@@ -342,10 +344,9 @@ export function createEvaluateValidity({
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
-  return function baseEvaluateValidity({
-    responseTimes, responses, correct, completed,
-  }) {
-    const flags = [];
+  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
+    console.log('included', includedReliabilityFlags)
+    let flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {
       flags.push('notEnoughResponses');
@@ -370,9 +371,9 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
+      flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
-    const filteredFlags = flags.filter((x) => includedReliabilityFlags.includes(x));
-    return { filteredFlags, isReliable };
+    return { flags, isReliable };
   };
 }
 
