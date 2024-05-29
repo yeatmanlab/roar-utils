@@ -309,13 +309,10 @@ test('Sets the correct age fields for all possible inputs', () => {
       } else {
         expectedAge = testDate.getFullYear() - poss.expectedBirthYear;
       }
-      expectedAgeMonths =
-        (testDate.getFullYear() - poss.expectedBirthYear) * 12 +
-        (testDate.getMonth() + 1 - poss.expectedBirthMonth);
+      expectedAgeMonths = (testDate.getFullYear() - poss.expectedBirthYear) * 12
+        + (testDate.getMonth() + 1 - poss.expectedBirthMonth);
     }
 
-    console.log('Age inputs', poss);
-    console.log('ageData', ageData);
     expect(ageData.birthMonth).toBe(poss.expectedBirthMonth);
     expect(ageData.birthYear).toBe(poss.expectedBirthYear);
     expect(ageData.age).toBe(expectedAge);
@@ -358,6 +355,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: new createEvaluateValidity({
         minResponsesRequired: 4,
+        includedReliabilityFlags: ['responseTimeTooFast', 'responseTimeTooSlow', 'accuracyTooLow'],
       }),
       handleEngagementFlags: testAddFlags,
     });
@@ -392,7 +390,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     expect(validityEval._correct.length).toBe(6);
     expect(validityEval._responses.length).toBe(6);
     expect(validityEval._responseTimes.length).toBe(6);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooSlow'], true);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooSlow'], false);
   });
   test('SampleEvaluator does not flag a run with similar responses but not too similar of responses', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
@@ -416,7 +414,7 @@ describe('BaseValidityEvaluator properly adds flags', () => {
     expect(validityEval._correct.length).toBe(6);
     expect(validityEval._responses.length).toBe(6);
     expect(validityEval._responseTimes.length).toBe(6);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['accuracyTooLow'], true);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['accuracyTooLow'], false);
   });
 });
 
@@ -428,7 +426,7 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
       evaluateValidity: new createEvaluateValidity({
         responseTimeLowThreshold: 500,
         responseTimeHighThreshold: 800,
-        includedReliabilityFlags: ['responseTimeTooFast'],
+        includedReliabilityFlags: ['responseTimeTooFast', 'responseTimeTooSlow'],
         minResponsesRequired: 4,
       }),
       handleEngagementFlags: testAddFlags,
@@ -450,7 +448,7 @@ describe('ValidityEvaluator tests with custom validation parameters', () => {
     validityEval.addResponseData(910, 'left_arrow', 1);
     validityEval.addResponseData(910, 'left_arrow', 1);
     validityEval.addResponseData(910, 'right_arrow', 1);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooSlow'], true);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooSlow'], false);
   });
   test('SampleEvaluator flags a run with too low of a median response time, but still returns the run as reliable as the responseTimeTooFast flag is blacklisted', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
@@ -569,7 +567,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(310, 'right_arrow', 1);
     validityEval.markAsCompleted();
     expect(testAddFlags).toHaveBeenLastCalledWith(
-      ['responseTimeTooSlow_DEL', 'accuracyTooLow_FSM', 'responseTimeTooFast_LSM'],
+      ['responseTimeTooFast_LSM'],
       false,
       {
         DEL: true,
@@ -579,7 +577,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     );
   });
 
-  test('Test for multiple flag retention per block with _preserveFlags', () => {
+  test('Test for multiple flag retention per block with preserveFlags', () => {
     validityEval.addResponseData(400, 'right_arrow', 0);
     validityEval.addResponseData(420, 'left_arrow', 0);
     validityEval.addResponseData(450, 'left_arrow', 0);
@@ -607,11 +605,8 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(
       [
         'responseTimeTooFast_DEL',
-        'accuracyTooLow_DEL',
         'responseTimeTooFast_FSM',
-        'accuracyTooLow_FSM',
         'responseTimeTooFast_LSM',
-        'accuracyTooLow_LSM',
       ],
       false,
       {

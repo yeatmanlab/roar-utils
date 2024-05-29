@@ -279,8 +279,8 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
   };
 
   // if inputGrade is null or undefined, return undefined to avoid an error with undefined.toLowerCase()
-  if(inputGrade === null || inputGrade === undefined) {
-    return undefined
+  if (inputGrade === null || inputGrade === undefined) {
+    return undefined;
   }
 
   if (Number.isNaN(parsedGrade)) {
@@ -297,9 +297,11 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     if (grade < gradeMin) return gradeMin;
     if (grade > gradeMax) return gradeMax;
     return grade;
-  } else if (parsedGrade < gradeMin) {
+  }
+  if (parsedGrade < gradeMin) {
     return gradeMin;
-  } else if (parsedGrade > gradeMax) {
+  }
+  if (parsedGrade > gradeMax) {
     return gradeMax;
   }
 
@@ -343,7 +345,7 @@ export function createEvaluateValidity({
   includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
   return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
-    const flags = [];
+    let flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {
       flags.push('notEnoughResponses');
@@ -368,6 +370,7 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
+      flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
     return { flags, isReliable };
   };
