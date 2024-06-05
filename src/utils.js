@@ -344,7 +344,9 @@ export function createEvaluateValidity({
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
 }) {
-  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
+  return function baseEvaluateValidity({
+    responseTimes, responses, correct, completed,
+  }) {
     let flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {
