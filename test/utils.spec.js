@@ -566,15 +566,11 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.addResponseData(310, 'left_arrow', 1);
     validityEval.addResponseData(310, 'right_arrow', 1);
     validityEval.markAsCompleted();
-    expect(testAddFlags).toHaveBeenLastCalledWith(
-      ['responseTimeTooFast_LSM'],
-      false,
-      {
-        DEL: true,
-        FSM: true,
-        LSM: false,
-      },
-    );
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast_LSM'], false, {
+      DEL: true,
+      FSM: true,
+      LSM: false,
+    });
   });
 
   test('Test for multiple flag retention per block with preserveFlags', () => {
@@ -603,11 +599,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
     validityEval.markAsCompleted();
 
     expect(testAddFlags).toHaveBeenLastCalledWith(
-      [
-        'responseTimeTooFast_DEL',
-        'responseTimeTooFast_FSM',
-        'responseTimeTooFast_LSM',
-      ],
+      ['responseTimeTooFast_DEL', 'responseTimeTooFast_FSM', 'responseTimeTooFast_LSM'],
       false,
       {
         DEL: false,
@@ -667,5 +659,63 @@ describe('ValidityEvaluator with incomplete flag for a non-block based assessmen
     validityEval.addResponseData(600, 'left_arrow', 1);
     validityEval.markAsCompleted();
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+});
+
+describe('ValidityEval test for 2 block based assessments (e.g. PA-es)', () => {
+  let validityEval;
+
+  beforeEach(() => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: new createEvaluateValidity({
+        responseTimeLowThreshold: 500,
+        responseTimeHighThreshold: 800,
+        includedReliabilityFlags: ['responseTimeTooFast', 'incomplete'],
+        minResponsesRequired: 4,
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+    validityEval.startNewBlockValidation('FSM');
+  });
+
+  test('Tests that a block-based assessment run with two completed blocks properly calculates reliability', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.markAsCompleted();
+    validityEval.startNewBlockValidation('LSM');
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+
+    expect(validityEval._responseTimes.length).toBe(4);
+    expect(validityEval._responses.length).toBe(4);
+    validityEval.markAsCompleted();
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true, {
+      FSM: true,
+      LSM: true,
+    });
+  });
+
+  test('Tests that a block-based assessment run with one block completed and one block incomplete properly calculates reliability', () => {
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.markAsCompleted();
+    validityEval.startNewBlockValidation('LSM');
+    validityEval.addResponseData(550, 'right_arrow', 0);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+
+    expect(validityEval._responseTimes.length).toBe(4);
+    expect(validityEval._responses.length).toBe(4);
+    expect(testAddFlags).toHaveBeenLastCalledWith(['incomplete'], false, {
+      FSM: true,
+      LSM: false,
+    });
   });
 });
