@@ -290,3 +290,101 @@ export function createPreloadTrials(jsonData, bucketURI, language) {
 
   return preloadTrials;
 }
+export class RoarProgressBar {
+  constructor(numTrialsPerBlock, thresholds) {
+    this.numTrialsPerBlock = numTrialsPerBlock;
+    this.currentBlock = 0;
+    this.thresholds = thresholds;
+
+    // Needs to have styling appended to the element
+    this.styleElement = document.createElement('style');
+    document.head.appendChild(this.styleElement);
+
+    // Initialize progress bar
+    this.getUpdatedProgressBar();
+  }
+
+  // Where the dots are located depending on the numTrials
+  setCSSVariables() {
+    for (let i = 0; i < this.numTrialsPerBlock.length; i++) {
+      const circleVarName = `--circle-${i + 1}-location`;
+      const percentage = (i + 1) / this.numTrialsPerBlock.length * 100;
+      document.documentElement.style.setProperty(circleVarName, `${percentage}%`);
+    }
+  }
+
+  getUpdatedProgressBar(num) {
+    // grabbing the progressbar
+    const progressBarContainer = document.getElementById('jspsych-progressbar-container');
+
+    // Get the updated progress bar width
+    const progressBarWidth = jsPsych.getProgressBarCompleted() * 100;
+
+    // Update data-reached attribute based on progress bar width and thresholds
+    for (let i = 0; i < this.thresholds.length; i++) {
+      if (progressBarWidth >= this.thresholds[i]) {
+        progressBarContainer.setAttribute('data-reached', String(this.thresholds[i]));
+        break; // Break out of loop after setting the attribute
+      }
+    }
+
+    // Update dynamic CSS based on reached thresholds
+    this.updateDynamicCSS();
+
+    // Check if we have entered a new block
+    if (this.currentBlock < this.numTrialsPerBlock.length && this.numTrialsPerBlock[this.currentBlock] === 0) {
+      this.currentBlock++;
+      // Trigger color change of dots on the progress bar
+      this.triggerColorChange();
+    }
+    // checking if the progress bar is updated
+    console.log(`Updated progress bar for block ${this.currentBlock + 1}`);
+  }
+
+  updateDynamicCSS() {
+    // this elements must be on every game
+    const progressBarInner = document.getElementById('jspsych-progressbar-inner');
+    const progressBarContainer = document.getElementById('jspsych-progressbar-container');
+    
+    // Set dynamic CSS based on reached thresholds
+    let css = '';
+
+    // updating the colors + dots
+    this.thresholds.forEach((threshold, index) => {
+      css += `
+        #jspsych-progressbar-inner::before:nth-child(${index + 1}) {
+          left: calc(${threshold}% - 10px);
+        }
+
+        #jspsych-progressbar-container[data-reached="${threshold}"] #jspsych-progressbar-inner::before:nth-child(${index + 1}),
+        #jspsych-progressbar-container[data-reached="${threshold}"] #jspsych-progressbar-inner::after:nth-child(${index + 1}) {
+          background: #009688;
+        }
+      `;
+    });
+    // injecting the colot change + dots
+    this.styleElement.innerHTML = css;
+  }
+  // this is for knowing if the block is completed
+  completeCurrentBlock() {
+    // Increment to the next block
+    this.currentBlock++;
+
+    // Trigger color change of dots on the progress bar
+    this.triggerColorChange();
+
+    console.log(`Completed block ${this.currentBlock}`);
+  }
+
+  triggerColorChange() {
+    // Your logic for triggering color change of dots on the progress bar
+    console.log('Color change triggered!');
+  }
+}
+// three blocks with 21 trials each + where the thresholds are
+const progressBar = new RoarProgressBar([21, 21, 21], [65, 32, 10]);
+
+progressBar.getUpdatedProgressBar();
+
+// to tell the class it finished the block
+progressBar.completeCurrentBlock();
