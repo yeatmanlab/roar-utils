@@ -270,6 +270,8 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     sophomore: 10,
     junior: 11,
     senior: 12,
+    postsecondary: 13,
+    ps: 13,
     postgraduate: 13,
     university: 13,
     graduate: 13,
