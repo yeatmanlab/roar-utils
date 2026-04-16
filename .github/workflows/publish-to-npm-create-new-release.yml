@@ -77,16 +77,6 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Create Sentry release and upload source maps
-        uses: getsentry/action-release@v1.7.0
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-        with:
-          environment: production
-          sourcemap: ./lib/*.js.map
-          version: ${{ github.ref }}
 
       - name: Notify on failure
         if: failure()
@@ -101,28 +91,6 @@ jobs:
             };
             github.rest.issues.create(issue);
 
-  deploy_to_production:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-          cache-dependency-path: "package-lock.json"
-
-      - run: "npm ci && npm run build:prod"
-
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_GSE_ROAR_ASSESSMENT }}"
-          channelId: live
-          projectId: gse-roar-assessment
-          target: production
 
       - name: Notify on failure
         if: failure()
