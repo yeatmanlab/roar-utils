@@ -337,6 +337,25 @@ export const median = (array) => {
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} includedReliabilityFlags - An array of flags that should be included
  * when evaluating reliability.
+ * @param {array} compositeRules - An array of composite rules to evaluate. Can pass in custom conditions or use pre-existing flags. 
+ *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
+ *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
+ *  @example
+ * createEvaluateValidity({
+ *   compositeRules: [{
+ *     logicalOperation: 'and',
+ *     conditions: [
+ *       (data) => data.existingFlags.includes('responseTimeTooFast'),
+ *       (data) => {
+ *         const mean = data.responseTimes.reduce((a, b) => a + b) / data.responseTimes.length;
+ *         const variance = data.responseTimes.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / data.responseTimes.length;
+ *         return variance > 1000000;
+ *       }
+ *     ],
+ *     flag: 'inconsistentTiming'
+ *   }],
+ *   includedReliabilityFlags: ['inconsistentTiming', 'responseTimeTooFast']
+ * });
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
 export function createEvaluateValidity({
@@ -345,6 +364,7 @@ export function createEvaluateValidity({
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
+  compositeRules = [] //[{logicalOperation: 'and', conditions: [(data) => {}], flag: 'compositeFlag'}]
 }) {
   return function baseEvaluateValidity({
     responseTimes, responses, correct, completed,
@@ -373,6 +393,27 @@ export function createEvaluateValidity({
       if (numCorrect / correct.length <= accuracyThreshold) {
         flags.push('accuracyTooLow');
       }
+      
+      // Evaluate composite rules alongside default checks
+      if (compositeRules.length > 0) {
+        const data = { responseTimes, responses, correct, completed, existingFlags: flags };
+        
+        compositeRules.forEach((rule) => {
+          const { logicalOperation, conditions, flag } = rule;
+          let conditionMet = false;
+          
+          if (logicalOperation === 'and') {
+            conditionMet = conditions.every((condition) => condition(data));
+          } else if (logicalOperation === 'or') {
+            conditionMet = conditions.some((condition) => condition(data));
+          }
+          
+          if (conditionMet) {
+            flags.push(flag);
+          }
+        });
+      }
+      
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
       flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
