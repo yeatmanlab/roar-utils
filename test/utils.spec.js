@@ -719,3 +719,208 @@ describe('ValidityEval test for 2 block based assessments (e.g. PA-es)', () => {
     });
   });
 });
+
+describe('ValidityEvaluator with Composite Rules', () => {
+  let validityEval;
+
+  test('Composite rule with AND logic using existing flag and custom condition', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => {
+                const uniqueResponses = new Set(data.responses).size;
+                return uniqueResponses <= 2;
+              },
+            ],
+            flag: 'fastAndRepetitive',
+          },
+        ],
+        includedReliabilityFlags: ['fastAndRepetitive'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'left_arrow', 1);
+    validityEval.addResponseData(320, 'right_arrow', 0);
+    validityEval.addResponseData(380, 'left_arrow', 1);
+    validityEval.addResponseData(340, 'right_arrow', 0);
+    validityEval.addResponseData(360, 'left_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
+  });
+
+  test('Composite rule with AND logic does not trigger when only one condition is met', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => {
+                const counts = {};
+                data.responses.forEach(r => counts[r] = (counts[r] || 0) + 1);
+                return Math.max(...Object.values(counts)) / data.responses.length > 0.8;
+              },
+            ],
+            flag: 'fastAndRepetitive',
+          },
+        ],
+        includedReliabilityFlags: ['fastAndRepetitive'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+    validityEval.addResponseData(340, 'left_arrow', 1);
+    validityEval.addResponseData(360, 'right_arrow', 0);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+
+  test('Composite rule with OR logic triggers when any condition is met', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'or',
+            conditions: [
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+              (data) => {
+                const maxRT = Math.max(...data.responseTimes);
+                return maxRT > 8000;
+              },
+            ],
+            flag: 'poorPerformance',
+          },
+        ],
+        includedReliabilityFlags: ['poorPerformance'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(600, 'left_arrow', 0);
+    validityEval.addResponseData(650, 'right_arrow', 0);
+    validityEval.addResponseData(700, 'left_arrow', 0);
+    validityEval.addResponseData(620, 'right_arrow', 0);
+    validityEval.addResponseData(680, 'left_arrow', 0);
+    validityEval.addResponseData(640, 'right_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['poorPerformance'], false);
+  });
+
+  test('Composite rule with OR logic using custom condition only', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'or',
+            conditions: [
+              (data) => {
+                const mean = data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length;
+                const variance = data.responseTimes.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / data.responseTimes.length;
+                return variance > 500000;
+              },
+              (data) => Math.max(...data.responseTimes) > 5000,
+            ],
+            flag: 'inconsistentTiming',
+          },
+        ],
+        includedReliabilityFlags: ['inconsistentTiming'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(500, 'left_arrow', 1);
+    validityEval.addResponseData(6000, 'right_arrow', 1);
+    validityEval.addResponseData(550, 'left_arrow', 1);
+    validityEval.addResponseData(600, 'right_arrow', 1);
+    validityEval.addResponseData(520, 'left_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['inconsistentTiming'], false);
+  });
+
+  test('Multiple composite rules can be evaluated together', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => new Set(data.responses).size === 1,
+            ],
+            flag: 'fastAndSameKey',
+          },
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'fastAndInaccurate',
+          },
+        ],
+        includedReliabilityFlags: ['fastAndSameKey', 'fastAndInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'left_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(380, 'left_arrow', 0);
+    validityEval.addResponseData(340, 'left_arrow', 1);
+    validityEval.addResponseData(360, 'left_arrow', 0);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndSameKey', 'fastAndInaccurate'], false);
+  });
+
+  test('Composite rules work alongside default flags when both are in includedReliabilityFlags', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.responseTimes.length < 5,
+            ],
+            flag: 'fastAndFew',
+          },
+        ],
+        includedReliabilityFlags: ['responseTimeTooFast', 'fastAndFew'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'fastAndFew'], false);
+  });
+});
