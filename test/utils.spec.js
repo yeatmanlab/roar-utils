@@ -233,6 +233,9 @@ test('Creates the correct preload trials from all possible inputs', () => {
   }
 });
 
+// Mock date to avoid timezone-related flakiness
+jest.useFakeTimers();
+jest.setSystemTime(new Date('2024-06-15T12:00:00Z'));
 const testDate = new Date();
 
 const agePossibilities = [
@@ -318,6 +321,9 @@ test('Sets the correct age fields for all possible inputs', () => {
     expect(ageData.age).toBe(expectedAge);
     expect(ageData.ageMonths).toBe(expectedAgeMonths);
   }
+  
+  // Restore real timers after test
+  jest.useRealTimers();
 });
 
 test('Correctly parses grade', () => {
