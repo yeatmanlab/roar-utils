@@ -934,4 +934,37 @@ describe('ValidityEvaluator with Composite Rules', () => {
 
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'fastAndFew'], false);
   });
+
+  test('Base flag used in composite condition is excluded when not in includedReliabilityFlags', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        compositeRules: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'fastAndInaccurate',
+          },
+        ],
+        // Only include composite flag, not the base flags
+        includedReliabilityFlags: ['fastAndInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+    validityEval.addResponseData(340, 'left_arrow', 0);
+    validityEval.addResponseData(360, 'right_arrow', 1);
+
+    // Only composite flag returned, base flags excluded
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndInaccurate'], false);
+  });
 });
