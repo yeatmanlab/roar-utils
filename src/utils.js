@@ -337,13 +337,13 @@ export const median = (array) => {
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} includedReliabilityFlags - An array of flags that should be included
  * when evaluating reliability.
- * @param {array} compositeRules - An array of composite rules to evaluate. Can pass in custom conditions or use pre-existing flags. 
+ * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags. 
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
  *  - Can return existing and/or custom flags depending on includedReliabilityFlags 
  * @example
  * createEvaluateValidity({
- *   compositeRules: [{
+ *   customValidations: [{
  *     logicalOperation: 'and',
  *     conditions: [
  *       (data) => data.existingFlags.includes('responseTimeTooFast'),
@@ -365,7 +365,7 @@ export function createEvaluateValidity({
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
-  compositeRules = [] 
+  customValidations = [] 
 }) {
   return function baseEvaluateValidity({
     responseTimes, responses, correct, completed,
@@ -395,11 +395,11 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
       
-      // Evaluate composite rules alongside default checks
-      if (compositeRules.length > 0) {
+      // Evaluate custom validations alongside default checks
+      if (customValidations.length > 0) {
         const data = { responseTimes, responses, correct, completed, existingFlags: flags };
         
-        compositeRules.forEach((rule) => {
+        customValidations.forEach((rule) => {
           const { logicalOperation, conditions, flag } = rule;
           let conditionMet = false;
           

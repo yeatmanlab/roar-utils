@@ -726,15 +726,15 @@ describe('ValidityEval test for 2 block based assessments (e.g. PA-es)', () => {
   });
 });
 
-describe('ValidityEvaluator with Composite Rules', () => {
+describe('ValidityEvaluator with Custom Rules', () => {
   let validityEval;
 
-  test('Composite rule with AND logic using existing flag and custom condition', () => {
+  test('Custom rule with AND logic using existing flag and custom condition', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'and',
             conditions: [
@@ -762,12 +762,12 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
   });
 
-  test('Composite rule returns reliable when custom conditions are not met', () => {
+  test('Custom rule returns reliable when custom conditions are not met', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'and',
             conditions: [
@@ -801,13 +801,13 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   });
 
-  test('Composite rule with OR logic triggers when any condition is met', () => {
+  test('Custom rule with OR logic triggers when any condition is met', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         accuracyThreshold: 0.2,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'or',
             conditions: [
@@ -835,12 +835,12 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['poorPerformance'], false);
   });
 
-  test('Composite rule with OR logic using custom condition only', () => {
+  test('Custom rule with OR logic using custom condition only', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'or',
             conditions: [
@@ -868,13 +868,13 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['inconsistentTiming'], false);
   });
 
-  test('Multiple composite rules can be evaluated together', () => {
+  test('Multiple custom rules can be evaluated together', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         accuracyThreshold: 0.2,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'and',
             conditions: [
@@ -907,12 +907,12 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndSameKey', 'fastAndInaccurate'], false);
   });
 
-  test('Composite rules work alongside default flags when both are in includedReliabilityFlags', () => {
+  test('Custom rules work alongside default flags when both are in includedReliabilityFlags', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'and',
             conditions: [
@@ -935,13 +935,13 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'fastAndFew'], false);
   });
 
-  test('Base flag used in composite condition is excluded when not in includedReliabilityFlags', () => {
+  test('Base flag used in custom condition is excluded when not in includedReliabilityFlags', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
         accuracyThreshold: 0.2,
         minResponsesRequired: 4,
-        compositeRules: [
+        customValidations: [
           {
             logicalOperation: 'and',
             conditions: [
@@ -951,7 +951,7 @@ describe('ValidityEvaluator with Composite Rules', () => {
             flag: 'fastAndInaccurate',
           },
         ],
-        // Only include composite flag, not the base flags
+        // Only include custom flag, not the base flags
         includedReliabilityFlags: ['fastAndInaccurate'],
       }),
       handleEngagementFlags: testAddFlags,
@@ -964,7 +964,7 @@ describe('ValidityEvaluator with Composite Rules', () => {
     validityEval.addResponseData(340, 'left_arrow', 0);
     validityEval.addResponseData(360, 'right_arrow', 1);
 
-    // Only composite flag returned, base flags excluded
+    // Only custom flag returned, base flags excluded
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndInaccurate'], false);
   });
 });
