@@ -402,9 +402,9 @@ export function createEvaluateValidity({
           const { logicalOperation, conditions, flag } = rule;
           let conditionMet = false;
           
-          if (logicalOperation === 'and') {
+          if (logicalOperation.toLowerCase() === 'and') {
             conditionMet = conditions.every((condition) => condition(data));
-          } else if (logicalOperation === 'or') {
+          } else if (logicalOperation.toLowerCase() === 'or') {
             conditionMet = conditions.some((condition) => condition(data));
           }
           
