@@ -364,7 +364,7 @@ export function createEvaluateValidity({
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
-  compositeRules = [] //[{logicalOperation: 'and', conditions: [(data) => {}], flag: 'compositeFlag'}]
+  compositeRules = [] 
 }) {
   return function baseEvaluateValidity({
     responseTimes, responses, correct, completed,
