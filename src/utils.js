@@ -340,7 +340,8 @@ export const median = (array) => {
  * @param {array} compositeRules - An array of composite rules to evaluate. Can pass in custom conditions or use pre-existing flags. 
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
- *  @example
+ *  - Can return existing and/or custom flags depending on includedReliabilityFlags 
+ * @example
  * createEvaluateValidity({
  *   compositeRules: [{
  *     logicalOperation: 'and',
@@ -354,7 +355,7 @@ export const median = (array) => {
  *     ],
  *     flag: 'inconsistentTiming'
  *   }],
- *   includedReliabilityFlags: ['inconsistentTiming', 'responseTimeTooFast']
+ *   includedReliabilityFlags: ['inconsistentTiming'] // If only responseTimeTooFast is true, run will not be marked as unreliable
  * });
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
