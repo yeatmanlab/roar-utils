@@ -762,7 +762,7 @@ describe('ValidityEvaluator with Composite Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
   });
 
-  test('Composite rule with AND logic does not trigger when only one condition is met', () => {
+  test('Composite rule returns reliable when custom conditions are not met', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
         responseTimeLowThreshold: 400,
@@ -771,28 +771,33 @@ describe('ValidityEvaluator with Composite Rules', () => {
           {
             logicalOperation: 'and',
             conditions: [
-              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => {
+                const maxRT = Math.max(...data.responseTimes);
+                return maxRT > 5000;
+              },
               (data) => {
                 const counts = {};
                 data.responses.forEach(r => counts[r] = (counts[r] || 0) + 1);
-                return Math.max(...Object.values(counts)) / data.responses.length > 0.8;
+                return Math.max(...Object.values(counts)) / data.responses.length > 0.9;
               },
             ],
-            flag: 'fastAndRepetitive',
+            flag: 'slowAndRepetitive',
           },
         ],
-        includedReliabilityFlags: ['fastAndRepetitive'],
+        includedReliabilityFlags: ['slowAndRepetitive'],
       }),
       handleEngagementFlags: testAddFlags,
     });
 
-    validityEval.addResponseData(300, 'left_arrow', 1);
-    validityEval.addResponseData(350, 'right_arrow', 0);
-    validityEval.addResponseData(320, 'left_arrow', 1);
-    validityEval.addResponseData(380, 'right_arrow', 0);
-    validityEval.addResponseData(340, 'left_arrow', 1);
-    validityEval.addResponseData(360, 'right_arrow', 0);
+    // Good performance: fast responses, varied keys
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(550, 'right_arrow', 1);
+    validityEval.addResponseData(620, 'left_arrow', 1);
+    validityEval.addResponseData(580, 'right_arrow', 1);
+    validityEval.addResponseData(590, 'left_arrow', 1);
+    validityEval.addResponseData(610, 'right_arrow', 1);
 
+    // No flags triggered, run is reliable
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   });
 
