@@ -238,6 +238,7 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     preschool: 0,
     prekindergarten: 0,
     transitionalkindergarten: 0,
+    kg: 0,
     kindergarten: 0,
     infanttoddler: 0,
     infant: 0,
@@ -367,9 +368,7 @@ export function createEvaluateValidity({
   includedReliabilityFlags = ['responseTimeTooFast'],
   customValidations = [] 
 }) {
-  return function baseEvaluateValidity({
-    responseTimes, responses, correct, completed,
-  }) {
+  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
     let flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {
