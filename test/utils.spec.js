@@ -348,6 +348,52 @@ test('Correctly parses grade', () => {
 
 const testAddFlags = jest.fn();
 
+describe('BaseValidityEvaluator with default includedReliabilityFlags', () => {
+  let validityEval;
+
+  beforeEach(() => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: new createEvaluateValidity({
+        minResponsesRequired: 4,
+        // Not specifying includedReliabilityFlags - should default to ['responseTimeTooFast']
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+  });
+
+  test('Default includedReliabilityFlags only checks responseTimeTooFast', () => {
+    // Fast responses - should trigger responseTimeTooFast
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    validityEval.addResponseData(250, 'right_arrow', 0);
+    validityEval.addResponseData(250, 'left_arrow', 1);
+    validityEval.addResponseData(250, 'right_arrow', 0);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast'], false);
+  });
+
+  test('Default includedReliabilityFlags ignores responseTimeTooSlow', () => {
+    // Slow responses - responseTimeTooSlow triggered but not included by default
+    validityEval.addResponseData(11000, 'left_arrow', 1);
+    validityEval.addResponseData(12000, 'right_arrow', 1);
+    validityEval.addResponseData(13000, 'left_arrow', 1);
+    validityEval.addResponseData(14000, 'right_arrow', 1);
+
+    // Should be reliable since responseTimeTooSlow is not in default includedReliabilityFlags
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+
+  test('Default includedReliabilityFlags ignores accuracyTooLow', () => {
+    // Low accuracy - accuracyTooLow triggered but not included by default
+    validityEval.addResponseData(550, 'left_arrow', 0);
+    validityEval.addResponseData(600, 'right_arrow', 0);
+    validityEval.addResponseData(650, 'left_arrow', 0);
+    validityEval.addResponseData(700, 'right_arrow', 0);
+
+    // Should be reliable since accuracyTooLow is not in default includedReliabilityFlags
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+});
+
 describe('BaseValidityEvaluator properly adds flags', () => {
   let validityEval;
 
@@ -360,14 +406,15 @@ describe('BaseValidityEvaluator properly adds flags', () => {
       handleEngagementFlags: testAddFlags,
     });
   });
-  test('SampleEvaluator flags a run with too little responses', () => {
+  test('SampleEvaluator flags no run if not enough responses', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(450, 'left_arrow', 1);
     expect(validityEval._correct.length).toBe(2);
     expect(validityEval._responses.length).toBe(2);
     expect(validityEval._responseTimes.length).toBe(2);
-    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses'], false);
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   });
+
   test('SampleEvaluator flags a run with too low of a median response time', () => {
     validityEval.addResponseData(550, 'right_arrow', 0);
     validityEval.addResponseData(450, 'left_arrow', 1);
@@ -469,7 +516,7 @@ describe('ValidatyEvaluatorTests across Multiple Blocks', () => {
       evaluateValidity: new createEvaluateValidity({
         responseTimeLowThreshold: 500,
         responseTimeHighThreshold: 800,
-        includedReliabilityFlags: ['responseTimeTooFast', 'incomplete'],
+        includedReliabilityFlags: ['responseTimeTooFast', 'incomplete', 'notEnoughResponses'],
         minResponsesRequired: 4,
       }),
       handleEngagementFlags: testAddFlags,
