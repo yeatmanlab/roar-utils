@@ -372,9 +372,11 @@ export function createEvaluateValidity({
       if (numCorrect / correct.length <= accuracyThreshold) {
         flags.push('accuracyTooLow');
       }
-      isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
-      flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
+
+    isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
+    flags = flags.filter((x) => includedReliabilityFlags.includes(x));
+    
     return { flags, isReliable };
   };
 }
