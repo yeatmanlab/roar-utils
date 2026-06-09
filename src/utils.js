@@ -238,6 +238,7 @@ export const getGrade = (inputGrade, gradeMin = 0, gradeMax = 13) => {
     preschool: 0,
     prekindergarten: 0,
     transitionalkindergarten: 0,
+    kg: 0,
     kindergarten: 0,
     infanttoddler: 0,
     infant: 0,
@@ -367,9 +368,7 @@ export function createEvaluateValidity({
   includedReliabilityFlags = ['responseTimeTooFast'],
   customValidations = [],
 }) {
-  return function baseEvaluateValidity({
-    responseTimes, responses, correct, completed,
-  }) {
+  return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
     let flags = [];
     let isReliable = false;
     if (responseTimes.length < minResponsesRequired) {
@@ -394,36 +393,37 @@ export function createEvaluateValidity({
       if (numCorrect / correct.length <= accuracyThreshold) {
         flags.push('accuracyTooLow');
       }
-
-      // Evaluate custom validations alongside default checks
-      if (customValidations.length > 0) {
-        const data = {
-          responseTimes, responses, correct, completed, existingFlags: flags,
-        };
-
-        customValidations.forEach((rule) => {
-          const { logicalOperation = 'and', conditions, flag } = rule;
-          let conditionMet = false;
-
-          if (logicalOperation.toLowerCase() === 'and') {
-            conditionMet = conditions.every((condition) => condition(data));
-          } else if (logicalOperation.toLowerCase() === 'or') {
-            conditionMet = conditions.some((condition) => condition(data));
-          } else if (logicalOperation.toLowerCase() === 'xor') {
-            // XOR: exactly one condition must be true
-            const trueCount = conditions.filter((condition) => condition(data)).length;
-            conditionMet = trueCount === 1;
-          }
-
-          if (conditionMet) {
-            flags.push(flag);
-          }
-        });
-      }
-
-      isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
-      flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
+
+    // Evaluate custom validations alongside default checks
+    if (customValidations.length > 0) {
+      const data = {
+        responseTimes, responses, correct, completed, existingFlags: [...flags],
+      };
+
+      customValidations.forEach((rule) => {
+        const { logicalOperation = 'and', conditions, flag } = rule;
+        let conditionMet = false;
+
+        if (logicalOperation.toLowerCase() === 'and') {
+          conditionMet = conditions.every((condition) => condition(data));
+        } else if (logicalOperation.toLowerCase() === 'or') {
+          conditionMet = conditions.some((condition) => condition(data));
+        } else if (logicalOperation.toLowerCase() === 'xor') {
+          // XOR: exactly one condition must be true
+          const trueCount = conditions.filter((condition) => condition(data)).length;
+          conditionMet = trueCount === 1;
+        }
+
+        if (conditionMet) {
+          flags.push(flag);
+        }
+      });
+    }
+
+    isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
+    flags = flags.filter((x) => includedReliabilityFlags.includes(x));
+    
     return { flags, isReliable };
   };
 }

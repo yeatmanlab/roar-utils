@@ -2,11 +2,12 @@ name: Publish, Release, and Deploy
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
-      - "v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+"
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+'
 permissions:
   id-token: write # Required for OIDC
   contents: write # Required for writing tags
+  issues: write # Required for creating issues
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,10 +31,10 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
         with:
-          node-version-file: ".nvmrc"
-          registry-url: "https://registry.npmjs.org"
-          cache: "npm"
-          cache-dependency-path: "package-lock.json"
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
         # npm@v11.5.0+ is required for OIDC support
         # node@v22.0.0+
@@ -51,13 +52,17 @@ jobs:
       - name: Install and Build 🔧
         run: |
           npm ci
-          npm run package
+          npm run build
 
       - name: Check for uncommitted changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am "Commit uncommitted changes [skip ci]"
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -am "Commit uncommitted changes [skip ci]"
+          else
+            echo "No uncommitted changes"
+          fi
 
       - name: Push tag
         run: |
@@ -76,21 +81,6 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-
-
-      - name: Notify on failure
-        if: failure()
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const issue = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: "Combined workflow failed",
-              body: `The workflow failed on [${context.sha.substring(0, 7)}](${context.payload.repository.html_url}/commit/${context.sha}). Please check it.`,
-            };
-            github.rest.issues.create(issue);
-
 
       - name: Notify on failure
         if: failure()
