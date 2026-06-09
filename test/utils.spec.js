@@ -966,4 +966,38 @@ describe('ValidityEvaluator with Custom Rules', () => {
     // Only custom flag returned, base flags excluded
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndInaccurate'], false);
   });
+
+  test('Custom validation flag not evaluated when not in includedReliabilityFlags', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => {
+                const uniqueResponses = new Set(data.responses).size;
+                return uniqueResponses <= 2;
+              },
+            ],
+            flag: 'fastAndRepetitive',
+          },
+        ],
+        // Custom flag NOT included in includedReliabilityFlags
+        includedReliabilityFlags: ['responseTimeTooFast'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Trigger both responseTimeTooFast AND fastAndRepetitive conditions
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'left_arrow', 1);
+    validityEval.addResponseData(320, 'right_arrow', 0);
+    validityEval.addResponseData(380, 'left_arrow', 1);
+
+    // Only responseTimeTooFast returned, fastAndRepetitive ignored
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast'], false);
+  });
 });

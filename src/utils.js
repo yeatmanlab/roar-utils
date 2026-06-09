@@ -336,7 +336,7 @@ export const median = (array) => {
  * @param {number} responseTimeHighThreshold - The maximum acceptable response time threshold in MS.
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} includedReliabilityFlags - An array of flags that should be included
- * when evaluating reliability.
+ * when evaluating reliability. **Note:** Custom flags will not be evaluated unless they are included in this array.
  * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
