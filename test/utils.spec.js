@@ -1000,4 +1000,126 @@ describe('ValidityEvaluator with Custom Rules', () => {
     // Only responseTimeTooFast returned, fastAndRepetitive ignored
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast'], false);
   });
+
+  test('Custom rule with XOR logic triggers when exactly one condition is met', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'xor',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'eitherFastOrInaccurate',
+          },
+        ],
+        includedReliabilityFlags: ['eitherFastOrInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Fast but accurate - only one condition met
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'right_arrow', 1);
+    validityEval.addResponseData(320, 'left_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['eitherFastOrInaccurate'], false);
+  });
+
+  test('Custom rule with XOR logic does not trigger when both conditions are met', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'xor',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'eitherFastOrInaccurate',
+          },
+        ],
+        includedReliabilityFlags: ['eitherFastOrInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Fast AND inaccurate - both conditions met, XOR should NOT trigger
+    validityEval.addResponseData(300, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(380, 'right_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+
+  test('Custom rule with XOR logic does not trigger when no conditions are met', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'xor',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'eitherFastOrInaccurate',
+          },
+        ],
+        includedReliabilityFlags: ['eitherFastOrInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Good performance - neither condition met
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'right_arrow', 1);
+    validityEval.addResponseData(700, 'left_arrow', 1);
+    validityEval.addResponseData(750, 'right_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith([], true);
+  });
+
+  test('Custom rule defaults to AND logic when logicalOperation is not specified', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            // logicalOperation not specified - should default to 'and'
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => {
+                const uniqueResponses = new Set(data.responses).size;
+                return uniqueResponses <= 2;
+              },
+            ],
+            flag: 'fastAndRepetitive',
+          },
+        ],
+        includedReliabilityFlags: ['fastAndRepetitive'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Both conditions met - should trigger with default AND logic
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'left_arrow', 1);
+    validityEval.addResponseData(320, 'right_arrow', 0);
+    validityEval.addResponseData(380, 'left_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
+  });
 });

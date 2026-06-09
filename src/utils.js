@@ -339,7 +339,7 @@ export const median = (array) => {
  * when evaluating reliability. **Note:** Custom flags will not be evaluated unless they are included in this array.
  * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
- *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
+ *  - Custom conditions requires logicalOperation ('and', 'or', 'xor', default: 'and'), conditions array (functions), and flag name
  *  - Can return existing and/or custom flags depending on includedReliabilityFlags
  * @example
  * createEvaluateValidity({
@@ -402,13 +402,17 @@ export function createEvaluateValidity({
         };
 
         customValidations.forEach((rule) => {
-          const { logicalOperation, conditions, flag } = rule;
+          const { logicalOperation = 'and', conditions, flag } = rule;
           let conditionMet = false;
 
           if (logicalOperation.toLowerCase() === 'and') {
             conditionMet = conditions.every((condition) => condition(data));
           } else if (logicalOperation.toLowerCase() === 'or') {
             conditionMet = conditions.some((condition) => condition(data));
+          } else if (logicalOperation.toLowerCase() === 'xor') {
+            // XOR: exactly one condition must be true
+            const trueCount = conditions.filter((condition) => condition(data)).length;
+            conditionMet = trueCount === 1;
           }
 
           if (conditionMet) {
