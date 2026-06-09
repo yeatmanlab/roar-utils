@@ -233,71 +233,70 @@ test('Creates the correct preload trials from all possible inputs', () => {
   }
 });
 
-// Mock date to avoid timezone-related flakiness
-jest.useFakeTimers();
-jest.setSystemTime(new Date('2024-06-15T12:00:00Z'));
-const testDate = new Date();
-
-const agePossibilities = [
-  {
-    birthMonth: 8,
-    birthYear: 2009,
-    age: null,
-    ageMonths: null,
-    expectedBirthMonth: 8,
-    expectedBirthYear: 2009,
-  },
-  {
-    birthMonth: 5,
-    birthYear: 2000,
-    age: 23,
-    ageMonths: null,
-    expectedBirthMonth: 5,
-    expectedBirthYear: 2000,
-  },
-  {
-    birthMonth: null,
-    birthYear: 2007,
-    age: null,
-    ageMonths: null,
-    expectedBirthMonth: testDate.getMonth() + 1,
-    expectedBirthYear: 2007,
-  },
-  {
-    birthMonth: null,
-    birthYear: null,
-    age: null,
-    ageMonths: 254,
-    expectedBirthMonth: 12 + ((testDate.getMonth() + 1 - 254) % 12),
-    expectedBirthYear: testDate.getFullYear() - Math.floor(254 / 12),
-  },
-  {
-    birthMonth: null,
-    birthYear: null,
-    age: 12,
-    ageMonths: null,
-    expectedBirthMonth: testDate.getMonth() + 1,
-    expectedBirthYear: testDate.getFullYear() - 12,
-  },
-  {
-    birthMonth: 9,
-    birthYear: null,
-    age: null,
-    ageMonths: null,
-    expectedBirthMonth: null,
-    expectedBirthYear: null,
-  },
-  {
-    birthMonth: null,
-    birthYear: null,
-    age: null,
-    ageMonths: null,
-    expectedBirthMonth: null,
-    expectedBirthYear: null,
-  },
-];
-
 test('Sets the correct age fields for all possible inputs', () => {
+  // Mock date to avoid timezone-related flakiness
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date('2024-06-15T12:00:00Z'));
+  const testDate = new Date();
+
+  const agePossibilities = [
+    {
+      birthMonth: 8,
+      birthYear: 2009,
+      age: null,
+      ageMonths: null,
+      expectedBirthMonth: 8,
+      expectedBirthYear: 2009,
+    },
+    {
+      birthMonth: 5,
+      birthYear: 2000,
+      age: 23,
+      ageMonths: null,
+      expectedBirthMonth: 5,
+      expectedBirthYear: 2000,
+    },
+    {
+      birthMonth: null,
+      birthYear: 2007,
+      age: null,
+      ageMonths: null,
+      expectedBirthMonth: testDate.getMonth() + 1,
+      expectedBirthYear: 2007,
+    },
+    {
+      birthMonth: null,
+      birthYear: null,
+      age: null,
+      ageMonths: 254,
+      expectedBirthMonth: 12 + ((testDate.getMonth() + 1 - 254) % 12),
+      expectedBirthYear: testDate.getFullYear() - Math.floor(254 / 12),
+    },
+    {
+      birthMonth: null,
+      birthYear: null,
+      age: 12,
+      ageMonths: null,
+      expectedBirthMonth: testDate.getMonth() + 1,
+      expectedBirthYear: testDate.getFullYear() - 12,
+    },
+    {
+      birthMonth: 9,
+      birthYear: null,
+      age: null,
+      ageMonths: null,
+      expectedBirthMonth: null,
+      expectedBirthYear: null,
+    },
+    {
+      birthMonth: null,
+      birthYear: null,
+      age: null,
+      ageMonths: null,
+      expectedBirthMonth: null,
+      expectedBirthYear: null,
+    },
+  ];
   for (const poss of agePossibilities) {
     const ageData = getAgeData(poss.birthMonth, poss.birthYear, poss.age, poss.ageMonths);
 
@@ -321,7 +320,7 @@ test('Sets the correct age fields for all possible inputs', () => {
     expect(ageData.age).toBe(expectedAge);
     expect(ageData.ageMonths).toBe(expectedAgeMonths);
   }
-  
+
   // Restore real timers after test
   jest.useRealTimers();
 });
@@ -777,7 +776,7 @@ describe('ValidityEvaluator with Custom Rules', () => {
               },
               (data) => {
                 const counts = {};
-                data.responses.forEach(r => counts[r] = (counts[r] || 0) + 1);
+                data.responses.forEach((r) => counts[r] = (counts[r] || 0) + 1);
                 return Math.max(...Object.values(counts)) / data.responses.length > 0.9;
               },
             ],
@@ -846,7 +845,7 @@ describe('ValidityEvaluator with Custom Rules', () => {
             conditions: [
               (data) => {
                 const mean = data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length;
-                const variance = data.responseTimes.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / data.responseTimes.length;
+                const variance = data.responseTimes.reduce((sum, rt) => sum + (rt - mean) ** 2, 0) / data.responseTimes.length;
                 return variance > 500000;
               },
               (data) => Math.max(...data.responseTimes) > 5000,

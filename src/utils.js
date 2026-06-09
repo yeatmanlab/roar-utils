@@ -337,10 +337,10 @@ export const median = (array) => {
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} includedReliabilityFlags - An array of flags that should be included
  * when evaluating reliability.
- * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags. 
+ * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires logicalOperation, conditions array (functions), and flag name
- *  - Can return existing and/or custom flags depending on includedReliabilityFlags 
+ *  - Can return existing and/or custom flags depending on includedReliabilityFlags
  * @example
  * createEvaluateValidity({
  *   customValidations: [{
@@ -365,7 +365,7 @@ export function createEvaluateValidity({
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
-  customValidations = [] 
+  customValidations = [],
 }) {
   return function baseEvaluateValidity({
     responseTimes, responses, correct, completed,
@@ -394,27 +394,29 @@ export function createEvaluateValidity({
       if (numCorrect / correct.length <= accuracyThreshold) {
         flags.push('accuracyTooLow');
       }
-      
+
       // Evaluate custom validations alongside default checks
       if (customValidations.length > 0) {
-        const data = { responseTimes, responses, correct, completed, existingFlags: flags };
-        
+        const data = {
+          responseTimes, responses, correct, completed, existingFlags: flags,
+        };
+
         customValidations.forEach((rule) => {
           const { logicalOperation, conditions, flag } = rule;
           let conditionMet = false;
-          
+
           if (logicalOperation.toLowerCase() === 'and') {
             conditionMet = conditions.every((condition) => condition(data));
           } else if (logicalOperation.toLowerCase() === 'or') {
             conditionMet = conditions.some((condition) => condition(data));
           }
-          
+
           if (conditionMet) {
             flags.push(flag);
           }
         });
       }
-      
+
       isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
       flags = flags.filter((x) => includedReliabilityFlags.includes(x));
     }
