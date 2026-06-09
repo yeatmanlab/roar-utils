@@ -1056,7 +1056,8 @@ describe('ValidityEvaluator with Custom Rules', () => {
     validityEval.addResponseData(300, 'left_arrow', 0);
     validityEval.addResponseData(350, 'right_arrow', 0);
     validityEval.addResponseData(320, 'left_arrow', 0);
-    validityEval.addResponseData(380, 'right_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+    validityEval.addResponseData(340, 'left_arrow', 1);
 
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   });
@@ -1121,5 +1122,36 @@ describe('ValidityEvaluator with Custom Rules', () => {
     validityEval.addResponseData(380, 'left_arrow', 1);
 
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
+  });
+
+  test('includedReliabilityFlags order does not affect custom validation - base flag last', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'and',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'fastAndInaccurate',
+          },
+        ],
+        // Custom flag listed BEFORE base flags
+        includedReliabilityFlags: ['fastAndInaccurate', 'responseTimeTooFast', 'accuracyTooLow'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(380, 'right_arrow', 1);
+
+    // Same flags returned, order in includedReliabilityFlags doesn't matter
+    expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'accuracyTooLow', 'fastAndInaccurate'], false);
   });
 });
