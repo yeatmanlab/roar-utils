@@ -337,7 +337,30 @@ export const median = (array) => {
  * @param {number} responseTimeHighThreshold - The maximum acceptable response time threshold in MS.
  * @param {number} accuracyThreshold - The minimum acceptable accuracy threshold.
  * @param {array} includedReliabilityFlags - An array of flags that should be included
- * when evaluating reliability.
+ * when evaluating reliability. **Note:** Custom flags will not be evaluated unless they are included in this array.
+ * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
+ *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
+ *  - Custom conditions requires conditions array (functions) and flag name. logicalOperation ('and', 'or', 'xor') is required when conditions has more than one entry; ignored when conditions has only one entry
+ *  - logicalOperation semantics: 'and' = all conditions true, 'or' = any condition true, 'xor' = exactly one condition true
+ *  - Can return existing and/or custom flags depending on includedReliabilityFlags
+ *  - Custom validations are only evaluated when the run has at least minResponsesRequired responses (i.e. it is not flagged 'notEnoughResponses')
+ *  - **Note:** Custom validation flags cannot depend on each other. Conditions may only reference built-in flags via existingFlags.
+ * @example
+ * createEvaluateValidity({
+ *   customValidations: [{
+ *     logicalOperation: 'and',
+ *     conditions: [
+ *       (data) => data.existingFlags.includes('responseTimeTooFast'),
+ *       (data) => {
+ *         const mean = data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length;
+ *         const variance = data.responseTimes.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / data.responseTimes.length;
+ *         return variance > 1000000;
+ *       }
+ *     ],
+ *     flag: 'inconsistentTiming'
+ *   }],
+ *   includedReliabilityFlags: ['inconsistentTiming'] // If only responseTimeTooFast is true, run will not be marked as unreliable
+ * });
  * @returns {function} baseValidityEvaluator - A function that evaluates the reliability of a run.
  */
 export function createEvaluateValidity({
@@ -346,7 +369,29 @@ export function createEvaluateValidity({
   accuracyThreshold = 0.2,
   minResponsesRequired = 0,
   includedReliabilityFlags = ['responseTimeTooFast'],
+  customValidations = [],
 }) {
+  const validLogicalOperations = ['and', 'or', 'xor'];
+  const normalizedCustomValidations = customValidations.map((v) => ({
+    ...v,
+    logicalOperation: v.logicalOperation?.toLowerCase(),
+  }));
+
+  for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
+    if (conditions.length > 1) {
+      if (logicalOperation === undefined) {
+        throw new Error(
+          `logicalOperation is required for custom validation flag "${flag}" when multiple conditions are provided. Must be one of: ${validLogicalOperations.join(', ')}.`,
+        );
+      }
+      if (!validLogicalOperations.includes(logicalOperation)) {
+        throw new Error(
+          `Invalid logicalOperation "${logicalOperation}" for custom validation flag "${flag}". Must be one of: ${validLogicalOperations.join(', ')}.`,
+        );
+      }
+    }
+  }
+
   return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
     let flags = [];
     let isReliable = false;
@@ -373,10 +418,36 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
     }
+    
+    // Evaluate custom validations. Only rules whose flag is in includedReliabilityFlags are evaluated,
+    // and only when there are enough responses (mirroring the built-in checks above).
+    // Snapshot the built-in flags once, before any custom flag is added, so custom rules stay independent:
+    // a condition may reference built-in flags via existingFlags but never another custom rule's flag.
+    if (responseTimes.length >= minResponsesRequired) {
+      const builtInFlags = [...flags];
+      for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
+        if (!includedReliabilityFlags.includes(flag)) continue;
+
+        const data = { responseTimes, responses, correct, completed, existingFlags: [...builtInFlags] };
+
+        let triggered;
+        if (conditions.length === 1) {
+          triggered = conditions[0](data);
+        } else if (logicalOperation === 'or') {
+          triggered = conditions.some((c) => c(data));
+        } else if (logicalOperation === 'xor') {
+          triggered = conditions.filter((c) => c(data)).length === 1;
+        } else {
+          triggered = conditions.every((c) => c(data));
+        }
+
+        if (triggered) flags.push(flag);
+      }
+    }
 
     isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
     flags = flags.filter((x) => includedReliabilityFlags.includes(x));
-    
+
     return { flags, isReliable };
   };
 }
