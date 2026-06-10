@@ -342,6 +342,7 @@ export const median = (array) => {
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires logicalOperation ('and', 'or', 'xor', default: 'and'), conditions array (functions), and flag name
  *  - Can return existing and/or custom flags depending on includedReliabilityFlags
+ *  - **Note:** Custom validation flags cannot depend on each other. Conditions may only reference built-in flags via existingFlags.
  * @example
  * createEvaluateValidity({
  *   customValidations: [{
@@ -394,36 +395,29 @@ export function createEvaluateValidity({
         flags.push('accuracyTooLow');
       }
     }
+    
+    // Evaluate custom validations. Only rules whose flag is in includedReliabilityFlags are evaluated.
+    // Note: conditions may only reference built-in flags via existingFlags, not other custom flags.
+    for (const { flag, conditions, logicalOperation = 'and' } of customValidations) {
+      if (!includedReliabilityFlags.includes(flag)) continue;
 
-    // Evaluate custom validations alongside default checks
-    if (customValidations.length > 0) {
-      const data = {
-        responseTimes, responses, correct, completed, existingFlags: [...flags],
-      };
+      const data = { responseTimes, responses, correct, completed, existingFlags: [...flags] };
 
-      customValidations.forEach((rule) => {
-        const { logicalOperation = 'and', conditions, flag } = rule;
-        let conditionMet = false;
+      let triggered;
+      if (logicalOperation === 'or') {
+        triggered = conditions.some((c) => c(data));
+      } else if (logicalOperation === 'xor') {
+        triggered = conditions.filter((c) => c(data)).length === 1;
+      } else {
+        triggered = conditions.every((c) => c(data));
+      }
 
-        if (logicalOperation.toLowerCase() === 'and') {
-          conditionMet = conditions.every((condition) => condition(data));
-        } else if (logicalOperation.toLowerCase() === 'or') {
-          conditionMet = conditions.some((condition) => condition(data));
-        } else if (logicalOperation.toLowerCase() === 'xor') {
-          // XOR: exactly one condition must be true
-          const trueCount = conditions.filter((condition) => condition(data)).length;
-          conditionMet = trueCount === 1;
-        }
-
-        if (conditionMet) {
-          flags.push(flag);
-        }
-      });
+      if (triggered) flags.push(flag);
     }
 
     isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;
     flags = flags.filter((x) => includedReliabilityFlags.includes(x));
-    
+
     return { flags, isReliable };
   };
 }

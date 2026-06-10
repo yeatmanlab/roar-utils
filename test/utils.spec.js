@@ -1196,9 +1196,11 @@ describe('ValidityEvaluator with Custom Rules', () => {
     validityEval.addResponseData(300, 'left_arrow', 0);
     validityEval.addResponseData(350, 'right_arrow', 0);
     validityEval.addResponseData(320, 'left_arrow', 0);
-    validityEval.addResponseData(380, 'right_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+    validityEval.addResponseData(340, 'left_arrow', 1);
 
     // Same flags returned, order in includedReliabilityFlags doesn't matter
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'accuracyTooLow', 'fastAndInaccurate'], false);
   });
+
 });
