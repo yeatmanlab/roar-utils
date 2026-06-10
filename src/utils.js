@@ -341,7 +341,9 @@ export const median = (array) => {
  * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
  *  - Custom conditions requires conditions array (functions) and flag name. logicalOperation ('and', 'or', 'xor') is required when conditions has more than one entry; ignored when conditions has only one entry
+ *  - logicalOperation semantics: 'and' = all conditions true, 'or' = any condition true, 'xor' = exactly one condition true
  *  - Can return existing and/or custom flags depending on includedReliabilityFlags
+ *  - Custom validations are only evaluated when the run has at least minResponsesRequired responses (i.e. it is not flagged 'notEnoughResponses')
  *  - **Note:** Custom validation flags cannot depend on each other. Conditions may only reference built-in flags via existingFlags.
  * @example
  * createEvaluateValidity({
@@ -350,7 +352,7 @@ export const median = (array) => {
  *     conditions: [
  *       (data) => data.existingFlags.includes('responseTimeTooFast'),
  *       (data) => {
- *         const mean = data.responseTimes.reduce((a, b) => a + b) / data.responseTimes.length;
+ *         const mean = data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length;
  *         const variance = data.responseTimes.reduce((sum, rt) => sum + Math.pow(rt - mean, 2), 0) / data.responseTimes.length;
  *         return variance > 1000000;
  *       }
@@ -417,25 +419,30 @@ export function createEvaluateValidity({
       }
     }
     
-    // Evaluate custom validations. Only rules whose flag is in includedReliabilityFlags are evaluated.
-    // Note: conditions may only reference built-in flags via existingFlags, not other custom flags.
-    for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
-      if (!includedReliabilityFlags.includes(flag)) continue;
+    // Evaluate custom validations. Only rules whose flag is in includedReliabilityFlags are evaluated,
+    // and only when there are enough responses (mirroring the built-in checks above).
+    // Snapshot the built-in flags once, before any custom flag is added, so custom rules stay independent:
+    // a condition may reference built-in flags via existingFlags but never another custom rule's flag.
+    if (responseTimes.length >= minResponsesRequired) {
+      const builtInFlags = [...flags];
+      for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
+        if (!includedReliabilityFlags.includes(flag)) continue;
 
-      const data = { responseTimes, responses, correct, completed, existingFlags: [...flags] };
+        const data = { responseTimes, responses, correct, completed, existingFlags: [...builtInFlags] };
 
-      let triggered;
-      if (conditions.length === 1) {
-        triggered = conditions[0](data);
-      } else if (logicalOperation === 'or') {
-        triggered = conditions.some((c) => c(data));
-      } else if (logicalOperation === 'xor') {
-        triggered = conditions.filter((c) => c(data)).length === 1;
-      } else {
-        triggered = conditions.every((c) => c(data));
+        let triggered;
+        if (conditions.length === 1) {
+          triggered = conditions[0](data);
+        } else if (logicalOperation === 'or') {
+          triggered = conditions.some((c) => c(data));
+        } else if (logicalOperation === 'xor') {
+          triggered = conditions.filter((c) => c(data)).length === 1;
+        } else {
+          triggered = conditions.every((c) => c(data));
+        }
+
+        if (triggered) flags.push(flag);
       }
-
-      if (triggered) flags.push(flag);
     }
 
     isReliable = flags.filter((x) => includedReliabilityFlags.includes(x)).length === 0;

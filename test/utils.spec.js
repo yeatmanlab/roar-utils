@@ -1247,4 +1247,49 @@ describe('ValidityEvaluator with Custom Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndInaccurate'], false);
   });
 
+  test('Custom validation flags are independent - a rule cannot observe another custom flag', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        minResponsesRequired: 4,
+        customValidations: [
+          // Always fires
+          { conditions: [() => true], flag: 'flagA' },
+          // Tries to depend on the earlier custom flag; existingFlags must only contain built-in flags
+          { conditions: [(data) => data.existingFlags.includes('flagA')], flag: 'flagB' },
+        ],
+        includedReliabilityFlags: ['flagA', 'flagB'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    // Response times high / all correct, so no built-in flags fire
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'right_arrow', 1);
+    validityEval.addResponseData(620, 'left_arrow', 1);
+    validityEval.addResponseData(580, 'right_arrow', 1);
+
+    // flagA fires; flagB must NOT, because conditions only see built-in flags
+    expect(testAddFlags).toHaveBeenLastCalledWith(['flagA'], false);
+  });
+
+  test('Custom validations are not evaluated when there are not enough responses', () => {
+    const condition = jest.fn(() => true);
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        minResponsesRequired: 10,
+        customValidations: [{ conditions: [condition], flag: 'alwaysFlag' }],
+        includedReliabilityFlags: ['notEnoughResponses', 'alwaysFlag'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(600, 'left_arrow', 1);
+    validityEval.addResponseData(650, 'right_arrow', 1);
+    validityEval.addResponseData(620, 'left_arrow', 1);
+
+    // Too few responses: only notEnoughResponses, the custom rule is skipped entirely
+    expect(testAddFlags).toHaveBeenLastCalledWith(['notEnoughResponses'], false);
+    expect(condition).not.toHaveBeenCalled();
+  });
+
 });
