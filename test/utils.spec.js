@@ -775,6 +775,39 @@ describe('ValidityEval test for 2 block based assessments (e.g. PA-es)', () => {
 describe('ValidityEvaluator with Custom Rules', () => {
   let validityEval;
 
+  test('Throws at setup time when logicalOperation is invalid', () => {
+    expect(() => {
+      createEvaluateValidity({
+        customValidations: [{ flag: 'myFlag', logicalOperation: 'nand', conditions: [() => true, () => true] }],
+        includedReliabilityFlags: ['myFlag'],
+      });
+    }).toThrow('Invalid logicalOperation "nand"');
+  });
+
+  test('Single condition rule triggers without logicalOperation', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            conditions: [(data) => data.existingFlags.includes('responseTimeTooFast')],
+            flag: 'fastRun',
+          },
+        ],
+        includedReliabilityFlags: ['fastRun'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 1);
+    validityEval.addResponseData(350, 'right_arrow', 1);
+    validityEval.addResponseData(320, 'left_arrow', 1);
+    validityEval.addResponseData(380, 'right_arrow', 1);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastRun'], false);
+  });
+
   test('Custom rule with AND logic using existing flag and custom condition', () => {
     validityEval = new ValidityEvaluator({
       evaluateValidity: createEvaluateValidity({
@@ -1139,36 +1172,18 @@ describe('ValidityEvaluator with Custom Rules', () => {
     expect(testAddFlags).toHaveBeenLastCalledWith([], true);
   });
 
-  test('Custom rule defaults to AND logic when logicalOperation is not specified', () => {
-    validityEval = new ValidityEvaluator({
-      evaluateValidity: createEvaluateValidity({
-        responseTimeLowThreshold: 400,
-        minResponsesRequired: 4,
+  test('Throws at setup time when logicalOperation is missing for multiple conditions', () => {
+    expect(() => {
+      createEvaluateValidity({
         customValidations: [
           {
-            // logicalOperation not specified - should default to 'and'
-            conditions: [
-              (data) => data.existingFlags.includes('responseTimeTooFast'),
-              (data) => {
-                const uniqueResponses = new Set(data.responses).size;
-                return uniqueResponses <= 2;
-              },
-            ],
+            conditions: [(data) => data.existingFlags.includes('responseTimeTooFast'), () => true],
             flag: 'fastAndRepetitive',
           },
         ],
         includedReliabilityFlags: ['fastAndRepetitive'],
-      }),
-      handleEngagementFlags: testAddFlags,
-    });
-
-    // Both conditions met - should trigger with default AND logic
-    validityEval.addResponseData(300, 'left_arrow', 1);
-    validityEval.addResponseData(350, 'left_arrow', 1);
-    validityEval.addResponseData(320, 'right_arrow', 0);
-    validityEval.addResponseData(380, 'left_arrow', 1);
-
-    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndRepetitive'], false);
+      });
+    }).toThrow('logicalOperation is required');
   });
 
   test('includedReliabilityFlags order does not affect custom validation - base flag last', () => {
@@ -1201,6 +1216,35 @@ describe('ValidityEvaluator with Custom Rules', () => {
 
     // Same flags returned, order in includedReliabilityFlags doesn't matter
     expect(testAddFlags).toHaveBeenLastCalledWith(['responseTimeTooFast', 'accuracyTooLow', 'fastAndInaccurate'], false);
+  });
+
+  test('Capitalized logicalOperation is normalized and works correctly', () => {
+    validityEval = new ValidityEvaluator({
+      evaluateValidity: createEvaluateValidity({
+        responseTimeLowThreshold: 400,
+        accuracyThreshold: 0.2,
+        minResponsesRequired: 4,
+        customValidations: [
+          {
+            logicalOperation: 'AND',
+            conditions: [
+              (data) => data.existingFlags.includes('responseTimeTooFast'),
+              (data) => data.existingFlags.includes('accuracyTooLow'),
+            ],
+            flag: 'fastAndInaccurate',
+          },
+        ],
+        includedReliabilityFlags: ['fastAndInaccurate'],
+      }),
+      handleEngagementFlags: testAddFlags,
+    });
+
+    validityEval.addResponseData(300, 'left_arrow', 0);
+    validityEval.addResponseData(350, 'right_arrow', 0);
+    validityEval.addResponseData(320, 'left_arrow', 0);
+    validityEval.addResponseData(380, 'right_arrow', 0);
+
+    expect(testAddFlags).toHaveBeenLastCalledWith(['fastAndInaccurate'], false);
   });
 
 });

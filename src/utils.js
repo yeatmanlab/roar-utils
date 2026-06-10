@@ -340,7 +340,7 @@ export const median = (array) => {
  * when evaluating reliability. **Note:** Custom flags will not be evaluated unless they are included in this array.
  * @param {array} customValidations - An array of custom validation rules to evaluate. Can pass in custom conditions or use pre-existing flags.
  *  - Condition arguments: responseTimes, responses, correct, completed, existingFlags
- *  - Custom conditions requires logicalOperation ('and', 'or', 'xor', default: 'and'), conditions array (functions), and flag name
+ *  - Custom conditions requires conditions array (functions) and flag name. logicalOperation ('and', 'or', 'xor') is required when conditions has more than one entry; ignored when conditions has only one entry
  *  - Can return existing and/or custom flags depending on includedReliabilityFlags
  *  - **Note:** Custom validation flags cannot depend on each other. Conditions may only reference built-in flags via existingFlags.
  * @example
@@ -369,6 +369,27 @@ export function createEvaluateValidity({
   includedReliabilityFlags = ['responseTimeTooFast'],
   customValidations = [],
 }) {
+  const validLogicalOperations = ['and', 'or', 'xor'];
+  const normalizedCustomValidations = customValidations.map((v) => ({
+    ...v,
+    logicalOperation: v.logicalOperation?.toLowerCase(),
+  }));
+
+  for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
+    if (conditions.length > 1) {
+      if (logicalOperation === undefined) {
+        throw new Error(
+          `logicalOperation is required for custom validation flag "${flag}" when multiple conditions are provided. Must be one of: ${validLogicalOperations.join(', ')}.`,
+        );
+      }
+      if (!validLogicalOperations.includes(logicalOperation)) {
+        throw new Error(
+          `Invalid logicalOperation "${logicalOperation}" for custom validation flag "${flag}". Must be one of: ${validLogicalOperations.join(', ')}.`,
+        );
+      }
+    }
+  }
+
   return function baseEvaluateValidity({ responseTimes, responses, correct, completed }) {
     let flags = [];
     let isReliable = false;
@@ -398,13 +419,15 @@ export function createEvaluateValidity({
     
     // Evaluate custom validations. Only rules whose flag is in includedReliabilityFlags are evaluated.
     // Note: conditions may only reference built-in flags via existingFlags, not other custom flags.
-    for (const { flag, conditions, logicalOperation = 'and' } of customValidations) {
+    for (const { flag, conditions, logicalOperation } of normalizedCustomValidations) {
       if (!includedReliabilityFlags.includes(flag)) continue;
 
       const data = { responseTimes, responses, correct, completed, existingFlags: [...flags] };
 
       let triggered;
-      if (logicalOperation === 'or') {
+      if (conditions.length === 1) {
+        triggered = conditions[0](data);
+      } else if (logicalOperation === 'or') {
         triggered = conditions.some((c) => c(data));
       } else if (logicalOperation === 'xor') {
         triggered = conditions.filter((c) => c(data)).length === 1;
