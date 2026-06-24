@@ -182,30 +182,24 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
   const ageData = {
     age: yearsOld,
     ageMonths: ageM,
+    birthYear: by,
+    birthMonth: bm,
   };
 
   if (bm && by) {
-    ageData.birthMonth = bm;
-    ageData.birthYear = by;
-
-    const birthDate = new Date(by, bm - 1, currDate.getDate());
-    const decimalYear = (currDate - birthDate) / msPerYear;
-    ageData.age = Math.floor(decimalYear);
-    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
-  } else if (by) {
-    ageData.birthYear = by;
-    ageData.birthMonth = currDate.getMonth() + 1;
-
-    const birthDate = new Date(by, ageData.birthMonth - 1, currDate.getDate());
-    const decimalYear = (currDate - birthDate) / msPerYear;
-    ageData.age = Math.floor(decimalYear);
-    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+    const ageMonthDiff = ((currDate.getFullYear() - by) * 12) + (currDate.getMonth() + 1 - bm);
+    ageData.age = Math.floor(ageMonthDiff / 12);
+    ageData.ageMonths = ageMonthDiff;
   } else if (ageM) {
     const birthDate = new Date();
-    birthDate.setMonth(birthDate.getMonth() - ageM);
+    birthDate.setMonth(currDate.getMonth() - ageM);
     ageData.birthYear = birthDate.getFullYear();
     ageData.birthMonth = birthDate.getMonth() + 1;
-    ageData.age = Math.floor((currDate - birthDate) / msPerYear);
+    ageData.age = Math.floor(ageM / 12);
+  } else if (by) {
+    ageData.birthMonth = currDate.getMonth() + 1;
+    ageData.age = currDate.getFullYear() - by;
+    ageData.ageMonths = ageData.age * 12;
   } else if (yearsOld) {
     ageData.birthYear = currDate.getFullYear() - yearsOld;
     ageData.birthMonth = currDate.getMonth() + 1;

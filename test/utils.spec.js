@@ -325,6 +325,69 @@ test('Sets the correct age fields for all possible inputs', () => {
   jest.useRealTimers();
 });
 
+describe('Edge cases for getAgeData', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-06-15T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('Birthday has not happened yet this year (future month)', () => {
+    const result = getAgeData(12, 2020, null, null);
+    expect(result.birthMonth).toBe(12);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(3); // Not 4, because December hasn't arrived
+    expect(result.ageMonths).toBe(42); // (2024-2020)*12 + (6-12) = 48-6 = 42
+  });
+
+  test('Birthday is same month as current date', () => {
+    const result = getAgeData(6, 2020, null, null);
+    expect(result.birthMonth).toBe(6);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4);
+    expect(result.ageMonths).toBe(48); // Exactly 4 years
+  });
+
+  test('Very young child (less than 12 months)', () => {
+    const result = getAgeData(null, null, null, 8);
+    expect(result.age).toBe(0); // 8 months = 0 years
+    expect(result.ageMonths).toBe(8);
+    expect(result.birthYear).toBe(2023);
+    expect(result.birthMonth).toBe(10); // June (6) - 8 months = October previous year
+  });
+
+  test('birthMonth/birthYear takes priority over ageMonths when both provided', () => {
+    const result = getAgeData(6, 2020, null, 50);
+    expect(result.birthMonth).toBe(6);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4); // Calculated from birth date
+    expect(result.ageMonths).toBe(48); // Calculated from birth date, ignoring provided 50
+  });
+
+  test('Exactly 1 year old', () => {
+    const result = getAgeData(6, 2023, null, null);
+    expect(result.age).toBe(1);
+    expect(result.ageMonths).toBe(12);
+  });
+
+  test('Newborn (0 months treated as null)', () => {
+    const result = getAgeData(null, null, null, 0);
+    expect(result.age).toBe(null); // 0 is treated as null by safeNumber
+    expect(result.ageMonths).toBe(null);
+  });
+
+  test('Birth month in the past this year', () => {
+    const result = getAgeData(1, 2020, null, null);
+    expect(result.birthMonth).toBe(1);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4); // Birthday already happened this year
+    expect(result.ageMonths).toBe(53); // (2024-2020)*12 + (6-1) = 48+5 = 53
+  });
+});
+
 test('Correctly parses grade', () => {
   // Test with default gradeMin and gradeMax
   expect(getGrade('K')).toBe(0);
