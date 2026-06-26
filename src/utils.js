@@ -144,7 +144,7 @@ export function getAssetType(asset) {
 
 /**
  * Calculates and returns age data based on the provided birth month, birth year,
- * age, and age in months.
+ * age, and age in months. It prioritizes the most specific data available.
  *
  * @function getAgeData
  *
@@ -165,8 +165,6 @@ export function getAssetType(asset) {
  */
 
 export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
-  // milliseconds per year (accounting for leap years)
-  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
   const currDate = new Date();
 
   const safeNumber = (value) => {
@@ -191,10 +189,9 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
     ageData.age = Math.floor(ageMonthDiff / 12);
     ageData.ageMonths = ageMonthDiff;
   } else if (ageM) {
-    const birthDate = new Date();
-    birthDate.setMonth(currDate.getMonth() - ageM);
-    ageData.birthYear = birthDate.getFullYear();
-    ageData.birthMonth = birthDate.getMonth() + 1;
+    const totalMonths = (currDate.getFullYear() * 12 + currDate.getMonth()) - ageM;
+    ageData.birthYear = Math.floor(totalMonths / 12);
+    ageData.birthMonth = (totalMonths % 12) + 1;
     ageData.age = Math.floor(ageM / 12);
   } else if (by) {
     ageData.birthMonth = currDate.getMonth() + 1;
