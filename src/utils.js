@@ -144,7 +144,7 @@ export function getAssetType(asset) {
 
 /**
  * Calculates and returns age data based on the provided birth month, birth year,
- * age, and age in months.
+ * age, and age in months. It prioritizes the most specific data available.
  *
  * @function getAgeData
  *
@@ -165,8 +165,6 @@ export function getAssetType(asset) {
  */
 
 export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
-  // milliseconds per year (accounting for leap years)
-  const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
   const currDate = new Date();
 
   const safeNumber = (value) => {
@@ -182,30 +180,23 @@ export const getAgeData = (birthMonth, birthYear, age, ageMonths) => {
   const ageData = {
     age: yearsOld,
     ageMonths: ageM,
+    birthYear: by,
+    birthMonth: bm,
   };
 
   if (bm && by) {
-    ageData.birthMonth = bm;
-    ageData.birthYear = by;
-
-    const birthDate = new Date(by, bm - 1, currDate.getDate());
-    const decimalYear = (currDate - birthDate) / msPerYear;
-    ageData.age = Math.floor(decimalYear);
-    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
-  } else if (by) {
-    ageData.birthYear = by;
-    ageData.birthMonth = currDate.getMonth() + 1;
-
-    const birthDate = new Date(by, ageData.birthMonth - 1, currDate.getDate());
-    const decimalYear = (currDate - birthDate) / msPerYear;
-    ageData.age = Math.floor(decimalYear);
-    ageData.ageMonths = ageM || Math.floor(decimalYear * 12);
+    const ageMonthDiff = ((currDate.getFullYear() - by) * 12) + (currDate.getMonth() + 1 - bm);
+    ageData.age = Math.floor(ageMonthDiff / 12);
+    ageData.ageMonths = ageMonthDiff;
   } else if (ageM) {
-    const birthDate = new Date();
-    birthDate.setMonth(birthDate.getMonth() - ageM);
-    ageData.birthYear = birthDate.getFullYear();
-    ageData.birthMonth = birthDate.getMonth() + 1;
-    ageData.age = Math.floor((currDate - birthDate) / msPerYear);
+    const totalMonths = (currDate.getFullYear() * 12 + currDate.getMonth()) - ageM;
+    ageData.birthYear = Math.floor(totalMonths / 12);
+    ageData.birthMonth = (totalMonths % 12) + 1;
+    ageData.age = Math.floor(ageM / 12);
+  } else if (by) {
+    ageData.birthMonth = currDate.getMonth() + 1;
+    ageData.age = currDate.getFullYear() - by;
+    ageData.ageMonths = ageData.age * 12;
   } else if (yearsOld) {
     ageData.birthYear = currDate.getFullYear() - yearsOld;
     ageData.birthMonth = currDate.getMonth() + 1;

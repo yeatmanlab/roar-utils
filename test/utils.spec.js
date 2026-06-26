@@ -325,6 +325,140 @@ test('Sets the correct age fields for all possible inputs', () => {
   jest.useRealTimers();
 });
 
+describe('Edge cases for getAgeData', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-06-15T12:00:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('Birthday has not happened yet this year (future month)', () => {
+    const result = getAgeData(12, 2020, null, null);
+    expect(result.birthMonth).toBe(12);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(3); // Not 4, because December hasn't arrived
+    expect(result.ageMonths).toBe(42); // (2024-2020)*12 + (6-12) = 48-6 = 42
+  });
+
+  test('Birthday is same month as current date', () => {
+    const result = getAgeData(6, 2020, null, null);
+    expect(result.birthMonth).toBe(6);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4);
+    expect(result.ageMonths).toBe(48); // Exactly 4 years
+  });
+
+  test('Very young child (less than 12 months)', () => {
+    const result = getAgeData(null, null, null, 8);
+    expect(result.age).toBe(0); // 8 months = 0 years
+    expect(result.ageMonths).toBe(8);
+    expect(result.birthYear).toBe(2023);
+    expect(result.birthMonth).toBe(10); // June (6) - 8 months = October previous year
+  });
+
+  test('birthMonth/birthYear takes priority over ageMonths when both provided', () => {
+    const result = getAgeData(6, 2020, null, 50);
+    expect(result.birthMonth).toBe(6);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4); // Calculated from birth date
+    expect(result.ageMonths).toBe(48); // Calculated from birth date, ignoring provided 50
+  });
+
+  test('Exactly 1 year old', () => {
+    const result = getAgeData(6, 2023, null, null);
+    expect(result.age).toBe(1);
+    expect(result.ageMonths).toBe(12);
+  });
+
+  test('Newborn (0 months treated as null)', () => {
+    const result = getAgeData(null, null, null, 0);
+    expect(result.age).toBe(null); // 0 is treated as null by safeNumber
+    expect(result.ageMonths).toBe(null);
+  });
+
+  test('Birth month in the past this year', () => {
+    const result = getAgeData(1, 2020, null, null);
+    expect(result.birthMonth).toBe(1);
+    expect(result.birthYear).toBe(2020);
+    expect(result.age).toBe(4); // Birthday already happened this year
+    expect(result.ageMonths).toBe(53); // (2024-2020)*12 + (6-1) = 48+5 = 53
+  });
+});
+
+describe('Integer division correctness (float drift regression)', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // The old msPerYear path could yield decimalYear=3.9999... on an exact anniversary,
+  // causing Math.floor to return 3 instead of 4.
+  test('Exact anniversary month returns correct whole-year age, not floor of float drift', () => {
+    jest.useFakeTimers();
+    // Use end-of-day to maximize ms elapsed: old msPerYear path yields ~47.9999 here,
+    // which Math.floor would have truncated to 3 instead of 4.
+    jest.setSystemTime(new Date('2024-06-15T23:59:59.998Z'));
+    const result = getAgeData(6, 2020, null, null); // 48 months exactly
+    expect(result.age).toBe(4);
+    expect(result.ageMonths).toBe(48);
+  });
+
+  // Boundary tests
+  test('One month before birthday returns age minus 1, not the coming year', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-05-15T23:59:59.998Z'));
+    const result = getAgeData(6, 2020, null, null); // 47 months
+    expect(result.age).toBe(3);
+    expect(result.ageMonths).toBe(47);
+  });
+
+  test('One month after birthday still returns same year age', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-07-15T23:59:59.998Z'));
+    const result = getAgeData(6, 2020, null, null); // 49 months
+    expect(result.age).toBe(4);
+    expect(result.ageMonths).toBe(49);
+  });
+
+  // Old code: new Date(by, currMonth, currDate.getDate()) with currDate = Feb 29 and a
+  // non-leap birth year caused JS to silently overflow Feb 29 → March 1, shifting the
+  // birth date into the wrong month and producing age=4 instead of 5.
+  test('Feb 29 current date with non-leap birth year (birthYear only) returns correct age', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-02-29T23:59:59.998Z'));
+    const result = getAgeData(null, 2019, null, null);
+    expect(result.birthYear).toBe(2019);
+    expect(result.birthMonth).toBe(2); // defaults to current month
+    expect(result.age).toBe(5); // 2024 - 2019; old code gave 4 due to March 1 overflow
+    expect(result.ageMonths).toBe(60);
+  });
+
+  // Basic ageMonths-only path
+  test('ageMonths only returns correct age, birthMonth, and birthYear', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-06-15T23:59:59.998Z'));
+    const result = getAgeData(null, null, null, 18);
+    expect(result.age).toBe(1);
+    expect(result.ageMonths).toBe(18);
+    expect(result.birthMonth).toBe(12); // June - 18 months = December
+    expect(result.birthYear).toBe(2022);
+  });
+
+  // setMonth overflow: today is Oct 31, subtracting 13 months should give September 2023,
+  // but setMonth(-4) on a date with day=31 overflows Sep 31 → October 1, 2023.
+  test('ageMonths=13 on Oct 31 gives birthMonth September, not October from setMonth overflow', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2024-10-31T23:59:59.998Z'));
+    const result = getAgeData(null, null, null, 13);
+    expect(result.age).toBe(1);
+    expect(result.ageMonths).toBe(13);
+    expect(result.birthMonth).toBe(9); // September, not October
+    expect(result.birthYear).toBe(2023);
+  });
+});
+
 test('Correctly parses grade', () => {
   // Test with default gradeMin and gradeMax
   expect(getGrade('K')).toBe(0);
